@@ -1,0 +1,91 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Gestión de Reclamos{% endblock %}
+{% block page_subtitle %}Listado de reclamos disponibles para tu rol{% endblock %}
+
+{% block content %}
+<div class="card bg-base-100 shadow-lg">
+    <div class="card-body">
+        <h2 class="card-title text-xl mb-4">📝 Reclamos</h2>
+        
+        {% if not claims %}
+            <div class="alert alert-info">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span>No hay reclamos para mostrar.</span>
+            </div>
+        {% else %}
+            <div class="overflow-x-auto">
+                <table class="table table-zebra">
+                    <thead>
+                        <tr>
+                            <th>Reclamo</th>
+                            <th>Detalle</th>
+                            <th class="text-center">Creador (ID)</th>
+                            <th class="text-center">Adherentes (IDs)</th>
+                            <th>Departamento</th>
+                            <th>Fecha/Hora</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for claim in claims %}
+                        <tr class="hover:bg-base-200">
+                            <td>
+                                <a href="{{ url_for('admin.claim_detail', claim_id=claim.id) }}" class="link link-primary font-semibold">
+                                    Reclamo #{{ claim.id }}
+                                </a>
+                            </td>
+                            <td class="max-w-xs">
+                                <div class="tooltip tooltip-right" data-tip="{{ claim.detail }}">
+                                    <span class="cursor-help truncate block max-w-48">
+                                        {{ claim.detail[:50] }}{% if claim.detail|length > 50 %}...{% endif %}
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="text-center">{{ claim.creator_id }}</td>
+                            <td class="text-center">
+                                {% set ids = supporters_ids_by_claim.get(claim.id, []) %}
+                                {% if ids %}
+                                    <span class="text-sm">{{ ids | join(', ') }}</span>
+                                {% else %}
+                                    <span class="text-base-content/50">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-ghost">
+                                    {{ claim.department.display_name if claim.department else 'Sin departamento' }}
+                                </span>
+                            </td>
+                            <td class="text-sm">{{ claim.created_at.strftime('%d/%m/%Y %H:%M') if claim.created_at else '-' }}</td>
+                            <td>
+                                {% if claim.status.value == 'Pendiente' %}
+                                    <span class="badge badge-warning">{{ claim.status.value }}</span>
+                                {% elif claim.status.value == 'En proceso' %}
+                                    <span class="badge badge-info">{{ claim.status.value }}</span>
+                                {% elif claim.status.value == 'Resuelto' %}
+                                    <span class="badge badge-success">{{ claim.status.value }}</span>
+                                {% else %}
+                                    <span class="badge badge-error">{{ claim.status.value }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form method="POST" action="{{ url_for('claims.update_status', id=claim.id) }}" class="flex gap-2 items-center">
+                                    <select name="status" class="select select-bordered select-sm w-32">
+                                        <option value="pending" {% if claim.status.value == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                                        <option value="in_progress" {% if claim.status.value == 'En proceso' %}selected{% endif %}>En Proceso</option>
+                                        <option value="resolved" {% if claim.status.value == 'Resuelto' %}selected{% endif %}>Resuelto</option>
+                                        <option value="invalid" {% if claim.status.value == 'Inválido' %}selected{% endif %}>Inválido</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-primary btn-sm">Actualizar</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

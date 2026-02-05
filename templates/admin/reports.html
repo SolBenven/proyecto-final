@@ -1,0 +1,100 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Reportes{% endblock %}
+{% block page_subtitle %}
+    Genera y descarga reportes de reclamos
+{% endblock %}
+
+{% block content %}
+<!-- Información del Reporte -->
+<div class="alert alert-info mb-6">
+    <div>
+        <h4 class="font-bold">📊 Contenido del Reporte</h4>
+        <ul class="list-disc list-inside mt-2">
+            <li>Resumen estadístico de reclamos por estado</li>
+            <li>Lista detallada de todos los reclamos</li>
+            <li>Información de departamentos incluidos</li>
+            <li>Fecha y hora de generación</li>
+        </ul>
+    </div>
+</div>
+
+<!-- Opciones de Descarga -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <!-- Reporte HTML -->
+    <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow">
+        <div class="card-body items-center text-center">
+            <div class="text-6xl text-warning mb-4">📄</div>
+            <h3 class="card-title">Reporte HTML</h3>
+            <p class="text-base-content/70">
+                Descarga el reporte en formato HTML. 
+                Ideal para visualizar en navegador o imprimir directamente.
+            </p>
+            <div class="card-actions mt-4 w-full">
+                <a href="{{ url_for('admin.download_report', format='html') }}" class="btn btn-primary w-full">
+                    ⬇️ Descargar HTML
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Reporte PDF -->
+    <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow">
+        <div class="card-body items-center text-center">
+            <div class="text-6xl text-error mb-4">📑</div>
+            <h3 class="card-title">Reporte PDF</h3>
+            <p class="text-base-content/70">
+                Descarga el reporte en formato PDF. 
+                Ideal para archivar o compartir de forma profesional.
+            </p>
+            <div class="card-actions mt-4 w-full">
+                <a href="{{ url_for('admin.download_report', format='pdf') }}" class="btn btn-primary w-full">
+                    ⬇️ Descargar PDF
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Departamentos Incluidos -->
+<div class="card bg-base-100 shadow-md mb-6">
+    <div class="card-body">
+        <h3 class="card-title">🏢 Departamentos Incluidos en el Reporte</h3>
+        {% if is_technical_secretary %}
+        <p class="text-base-content/60 mb-4">
+            Como Secretario Técnico, el reporte incluirá todos los departamentos del sistema.
+        </p>
+        {% else %}
+        <p class="text-base-content/60 mb-4">
+            El reporte incluirá únicamente los reclamos de tu departamento asignado.
+        </p>
+        {% endif %}
+        
+        <div class="flex flex-wrap gap-2">
+            {% for dept in departments %}
+            <span class="badge badge-lg {% if dept.is_technical_secretariat %}badge-secondary{% else %}badge-primary{% endif %}">
+                {{ dept.display_name }}
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Acciones -->
+<div class="card bg-base-100 shadow-md">
+    <div class="card-body">
+        <h3 class="card-title">⚡ Acciones</h3>
+        <div class="flex gap-4 flex-wrap mt-4">
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-ghost">
+                ← Volver al Dashboard
+            </a>
+            <a href="{{ url_for('admin.analytics') }}" class="btn btn-ghost">
+                📈 Ver Analítica
+            </a>
+            <a href="{{ url_for('admin.claims_list') }}" class="btn btn-primary">
+                📝 Ver Reclamos
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

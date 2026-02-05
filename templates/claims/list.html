@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Reclamos - Sistema de Reclamos{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">Reclamos</h1>
+
+<!-- Filtros -->
+<div class="card bg-base-200 shadow-sm mb-6">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('claims.list') }}" class="flex flex-wrap gap-4 items-end">
+            <div class="form-control">
+                <label class="label" for="department">
+                    <span class="label-text">Departamento</span>
+                </label>
+                <select name="department" id="department" class="select select-bordered w-full max-w-xs">
+                    <option value="">Todos</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" {% if selected_department == dept.id %}selected{% endif %}>
+                        {{ dept.display_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-control">
+                <label class="label" for="status">
+                    <span class="label-text">Estado</span>
+                </label>
+                <select name="status" id="status" class="select select-bordered w-full max-w-xs">
+                    <option value="">Todos</option>
+                    <option value="PENDING" {% if selected_status == 'pending' %}selected{% endif %}>Pendiente</option>
+                    <option value="IN_PROGRESS" {% if selected_status == 'in_progress' %}selected{% endif %}>En Proceso</option>
+                    <option value="RESOLVED" {% if selected_status == 'resolved' %}selected{% endif %}>Resuelto</option>
+                    <option value="INVALID" {% if selected_status == 'invalid' %}selected{% endif %}>Inválido</option>
+                </select>
+            </div>
+            
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary">Filtrar</button>
+                <a href="{{ url_for('claims.list') }}" class="btn btn-ghost">Limpiar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if current_user.is_authenticated %}
+<div class="mb-6">
+    <a href="{{ url_for('claims.new') }}" class="btn btn-success">
+        + Crear Nuevo Reclamo
+    </a>
+</div>
+{% endif %}
+
+<!-- Lista de Reclamos -->
+{% if claims %}
+    <div class="flex flex-col gap-4">
+    {% for claim in claims %}
+        <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow">
+            <div class="card-body">
+                <div class="flex flex-col md:flex-row justify-between items-start gap-4">
+                    <div class="flex-1">
+                        <h3 class="card-title">
+                            <a href="{{ url_for('claims.detail', id=claim.id) }}" class="link link-primary hover:link-hover">
+                                Reclamo #{{ claim.id }}
+                            </a>
+                        </h3>
+                        <span class="text-sm text-base-content/60">
+                            {{ claim.created_at.strftime('%d/%m/%Y %H:%M') }}
+                        </span>
+                    </div>
+                    <div>
+                        {% if claim.status.value == 'Pendiente' %}
+                            <span class="badge badge-warning">{{ claim.status.value }}</span>
+                        {% elif claim.status.value == 'En proceso' %}
+                            <span class="badge badge-info">{{ claim.status.value }}</span>
+                        {% elif claim.status.value == 'Resuelto' %}
+                            <span class="badge badge-success">{{ claim.status.value }}</span>
+                        {% else %}
+                            <span class="badge badge-error">{{ claim.status.value }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <p class="my-4">{{ claim.detail }}</p>
+                
+                <div class="flex flex-wrap gap-4 text-sm text-base-content/70">
+                    <span>📍 {{ claim.department.display_name }}</span>
+                    <span>👤 {{ claim.creator.full_name }}</span>
+                    <span>👥 {{ claim.supporters_count }} adherente(s)</span>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-16 text-base-content/60">
+        <div class="text-5xl mb-4">📭</div>
+        <p class="text-lg">No se encontraron reclamos con los filtros seleccionados.</p>
+    </div>
+{% endif %}
+
+{% endblock %}

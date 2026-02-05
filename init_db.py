@@ -1,8 +1,17 @@
-from app import create_app
-from app.extensions import db
+from modules.config import create_app, db
 
-# Importar modelos para que SQLAlchemy los reconozca
-from app.models.user import User
+# Importar todos los modelos para que SQLAlchemy los reconozca
+from modules.models import (
+    User,
+    EndUser,
+    AdminUser,
+    Department,
+    Claim,
+    ClaimSupporter,
+    ClaimStatusHistory,
+    ClaimTransfer,
+    UserNotification,
+)
 
 app = create_app()
 

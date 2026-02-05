@@ -1,0 +1,78 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Historial de Derivaciones{% endblock %}
+{% block page_subtitle %}Reclamo #{{ claim.id }}{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('admin.claim_detail', claim_id=claim.id) }}" class="btn btn-ghost btn-sm">
+        ← Volver al reclamo
+    </a>
+</div>
+
+<div class="card bg-base-100 shadow-md">
+    <div class="card-body">
+        <div class="border-b border-base-300 pb-4 mb-4">
+            <h3 class="card-title">📋 Historial de Derivaciones</h3>
+            <p class="text-base-content/60 mt-2">
+                Reclamo #{{ claim.id }} - Departamento actual: <span class="badge badge-primary">{{ claim.department.display_name }}</span>
+            </p>
+        </div>
+
+        {% if transfers %}
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Desde</th>
+                        <th>Hacia</th>
+                        <th>Derivado por</th>
+                        <th>Motivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transfer in transfers %}
+                    <tr>
+                        <td>
+                            <div class="font-semibold">{{ transfer.transferred_at.strftime('%d/%m/%Y') }}</div>
+                            <div class="text-sm text-base-content/60">{{ transfer.transferred_at.strftime('%H:%M') }}</div>
+                        </td>
+                        <td>
+                            <span class="badge badge-ghost">📍 {{ transfer.from_department.display_name }}</span>
+                        </td>
+                        <td>
+                            <span class="badge badge-ghost">📍 {{ transfer.to_department.display_name }}</span>
+                        </td>
+                        <td>
+                            👤 {{ transfer.transferred_by.first_name }} {{ transfer.transferred_by.last_name }}
+                        </td>
+                        <td>
+                            {% if transfer.reason %}
+                                {{ transfer.reason }}
+                            {% else %}
+                                <span class="text-base-content/40 italic">Sin motivo especificado</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="stats shadow mt-4">
+            <div class="stat">
+                <div class="stat-title">Total de derivaciones</div>
+                <div class="stat-value">{{ transfers|length }}</div>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-10 text-base-content/60">
+            <div class="text-5xl mb-4">📭</div>
+            <p class="text-lg font-semibold">Este reclamo no ha sido derivado</p>
+            <p class="text-sm mt-2">El reclamo permanece en su departamento original.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

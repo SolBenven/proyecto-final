@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Registrarse - Aplicación Flask{% endblock %}
+
+{% block content %}
+<div class="flex justify-center">
+    <div class="card w-full max-w-md bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-2xl justify-center mb-4">Registrarse</h2>
+            
+            <form method="post">
+                <div class="form-control mb-4">
+                    <label class="label" for="first_name">
+                        <span class="label-text">Nombre</span>
+                    </label>
+                    <input type="text" id="first_name" name="first_name" class="input input-bordered w-full" required placeholder="Tu nombre">
+                </div>
+                
+                <div class="form-control mb-4">
+                    <label class="label" for="last_name">
+                        <span class="label-text">Apellido</span>
+                    </label>
+                    <input type="text" id="last_name" name="last_name" class="input input-bordered w-full" required placeholder="Tu apellido">
+                </div>
+                
+                <div class="form-control mb-4">
+                    <label class="label" for="email">
+                        <span class="label-text">Email</span>
+                    </label>
+                    <input type="email" id="email" name="email" class="input input-bordered w-full" required placeholder="tu@email.com">
+                </div>
+                
+                <div class="form-control mb-4">
+                    <label class="label" for="username">
+                        <span class="label-text">Nombre de usuario</span>
+                    </label>
+                    <input type="text" id="username" name="username" class="input input-bordered w-full" required placeholder="Elige un usuario">
+                </div>
+                
+                <div class="form-control mb-4">
+                    <label class="label" for="cloister">
+                        <span class="label-text">Claustro</span>
+                    </label>
+                    <select id="cloister" name="cloister" class="select select-bordered w-full" required>
+                        <option value="estudiante">Estudiante</option>
+                        <option value="docente">Docente</option>
+                        <option value="PAyS">PAyS</option>
+                    </select>
+                </div>
+                
+                <div class="form-control mb-4">
+                    <label class="label" for="password">
+                        <span class="label-text">Contraseña</span>
+                    </label>
+                    <input type="password" id="password" name="password" class="input input-bordered w-full" required placeholder="Crea una contraseña">
+                </div>
+                
+                <div class="form-control mb-6">
+                    <label class="label" for="repeated_password">
+                        <span class="label-text">Repetir Contraseña</span>
+                    </label>
+                    <input type="password" id="repeated_password" name="repeated_password" class="input input-bordered w-full" required placeholder="Repite la contraseña">
+                </div>
+                
+                <button type="submit" class="btn btn-primary w-full">Registrarse</button>
+            </form>
+            
+            <div class="divider">o</div>
+            
+            <p class="text-center text-base-content/70">
+                ¿Ya tienes cuenta? 
+                <a href="{{ url_for('auth.end_user.login') }}" class="link link-primary">Inicia sesión aquí</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

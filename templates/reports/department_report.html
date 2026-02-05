@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Reclamos</title>
+    <style>
+        {{ pdf_css | safe }}
+        
+        /* Estilos adicionales para vista web */
+        @media screen {
+            body {
+                max-width: 900px;
+                margin: 0 auto;
+                padding: 40px 20px;
+                background-color: #f5f5f5;
+            }
+            .report-container {
+                background-color: white;
+                padding: 40px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                border-radius: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Encabezado del Reporte -->
+        <div class="report-header">
+            <h1>📋 Reporte de Reclamos</h1>
+            <div class="subtitle">
+                {% if is_technical_secretary %}
+                    Vista Global - Todos los Departamentos
+                {% else %}
+                    {% if departments|length == 1 %}
+                        {{ departments[0].display_name }}
+                    {% else %}
+                        {{ departments|length }} Departamentos
+                    {% endif %}
+                {% endif %}
+            </div>
+            <div class="date">
+                Generado el {{ generated_at.strftime('%d/%m/%Y a las %H:%M') }}
+            </div>
+        </div>
+
+        <!-- Resumen Estadístico -->
+        <div class="section">
+            <h2>📊 Resumen Estadístico</h2>
+            
+            {% if stats.total_claims > 0 %}
+            <table class="stats-table">
+                <tbody>
+                    <tr>
+                        <td>
+                            <span class="value total">{{ stats.total_claims }}</span>
+                            <span class="label">Total</span>
+                        </td>
+                        <td>
+                            <span class="value pending">{{ stats.status_counts.get('Pendiente', 0) }}</span>
+                            <span class="label">Pendientes</span>
+                        </td>
+                        <td>
+                            <span class="value in-progress">{{ stats.status_counts.get('En proceso', 0) }}</span>
+                            <span class="label">En Proceso</span>
+                        </td>
+                        <td>
+                            <span class="value resolved">{{ stats.status_counts.get('Resuelto', 0) }}</span>
+                            <span class="label">Resueltos</span>
+                        </td>
+                        <td>
+                            <span class="value invalid">{{ stats.status_counts.get('Inválido', 0) }}</span>
+                            <span class="label">Inválidos</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Porcentajes -->
+            {% if stats.status_percentages %}
+            <p style="color: #7f8c8d; font-size: 10pt; margin-top: 10px;">
+                <strong>Distribución:</strong>
+                {% for label, pct in stats.status_percentages.items() %}
+                    {{ label }}: {{ pct }}%{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </p>
+            {% endif %}
+            {% else %}
+            <p style="color: #7f8c8d;">No hay reclamos registrados.</p>
+            {% endif %}
+        </div>
+
+        <!-- Departamentos Incluidos -->
+        {% if departments|length > 1 %}
+        <div class="section">
+            <h2>🏢 Departamentos Incluidos</h2>
+            <ul style="padding-left: 20px;">
+                {% for dept in departments %}
+                <li>{{ dept.display_name }}{% if dept.is_technical_secretariat %} (Secretaría Técnica){% endif %}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Lista de Reclamos -->
+        <div class="section">
+            <h2>📝 Detalle de Reclamos ({{ claims|length }})</h2>
+            
+            {% if claims %}
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">ID</th>
+                        <th style="width: 100px;">Estado</th>
+                        <th>Detalle</th>
+                        <th style="width: 120px;">Departamento</th>
+                        <th style="width: 80px;">Adherentes</th>
+                        <th style="width: 100px;">Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for claim in claims %}
+                    <tr>
+                        <td>#{{ claim.id }}</td>
+                        <td>
+                            {% if claim.status.value == 'Pendiente' %}
+                            <span class="status-badge status-pending">Pendiente</span>
+                            {% elif claim.status.value == 'En proceso' %}
+                            <span class="status-badge status-in-progress">En proceso</span>
+                            {% elif claim.status.value == 'Resuelto' %}
+                            <span class="status-badge status-resolved">Resuelto</span>
+                            {% elif claim.status.value == 'Inválido' %}
+                            <span class="status-badge status-invalid">Inválido</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ claim.detail[:100] }}{% if claim.detail|length > 100 %}...{% endif %}</td>
+                        <td>{{ claim.department.display_name }}</td>
+                        <td style="text-align: center;">{{ claim.supporters_count }}</td>
+                        <td>{{ claim.created_at.strftime('%d/%m/%Y') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p style="color: #7f8c8d;">No hay reclamos para mostrar.</p>
+            {% endif %}
+        </div>
+
+        <!-- Pie de página -->
+        <div class="footer">
+            <p>Sistema de Gestión de Reclamos - Reporte generado automáticamente</p>
+            <p>{{ generated_at.strftime('%d/%m/%Y %H:%M:%S') }}</p>
+        </div>
+    </div>
+</body>
+</html>

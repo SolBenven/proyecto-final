@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Notificaciones{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">Notificaciones</h1>
+
+{% if notifications %}
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <p class="text-base-content/70">Tienes {{ notifications|length }} notificación(es) Pendiente(s)</p>
+        <form method="POST" action="{{ url_for('users.mark_all_notifications_read') }}">
+            <button type="submit" class="btn btn-success btn-sm">
+                Marcar Todas como Leídas
+            </button>
+        </form>
+    </div>
+    
+    <div class="flex flex-col gap-4">
+        {% for notification in notifications %}
+        <div class="card bg-base-200 shadow-sm">
+            <div class="card-body">
+                <h3 class="card-title">
+                    <a href="{{ url_for('claims.detail', id=notification.claim_status_history.claim.id) }}" 
+                       class="link link-primary hover:link-hover">
+                        Reclamo #{{ notification.claim_status_history.claim.id }}
+                    </a>
+                    <span class="text-base font-normal">- Cambio de Estado</span>
+                </h3>
+                
+                <p class="my-4 flex flex-wrap gap-2 items-center">
+                    <strong>Estado cambió de:</strong> 
+                    <span class="badge badge-ghost">
+                        {{ notification.claim_status_history.old_status.value|upper }}
+                    </span>
+                    <strong>a:</strong>
+                    <span class="badge 
+                        {% if notification.claim_status_history.new_status.value == 'Pendiente' %}badge-warning
+                        {% elif notification.claim_status_history.new_status.value == 'En proceso' %}badge-info
+                        {% elif notification.claim_status_history.new_status.value == 'Resuelto' %}badge-success
+                        {% else %}badge-neutral{% endif %}">
+                        {{ notification.claim_status_history.new_status.value|upper }}
+                    </span>
+                </p>
+                
+                <div class="tooltip tooltip-right w-fit" data-tip="{{ notification.claim_status_history.claim.detail }}">
+                    <p><strong>Reclamo:</strong> {{ notification.claim_status_history.claim.detail[:100] }}{% if notification.claim_status_history.claim.detail|length > 100 %}...{% endif %}</p>
+                </div>
+                <p><strong>Cambiado por:</strong> {{ notification.claim_status_history.changed_by.email }}</p>
+                <p class="text-sm text-base-content/60"><strong>Fecha:</strong> {{ notification.claim_status_history.changed_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                
+                <div class="card-actions justify-end mt-4">
+                    <a href="{{ url_for('claims.detail', id=notification.claim_status_history.claim.id) }}" 
+                       class="btn btn-primary btn-sm">
+                        Ver Reclamo
+                    </a>
+                    
+                    <form method="POST" action="{{ url_for('users.mark_notification_read', notification_id=notification.id) }}">
+                        <button type="submit" class="btn btn-ghost btn-sm">
+                            Marcar como Leída
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-16">
+        <div class="text-5xl mb-4">✓</div>
+        <p class="text-lg text-base-content/60">No tienes notificaciones pendientes.</p>
+    </div>
+{% endif %}
+
+<div class="divider my-8"></div>
+<a href="{{ url_for('claims.list') }}" class="btn btn-ghost">
+    ← Volver a todos los reclamos
+</a>
+
+{% endblock %}

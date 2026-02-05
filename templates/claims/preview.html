@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Revisar Reclamo - Sistema de Reclamos{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">Revisar Reclamo</h1>
+
+<div class="mb-8">
+    <div class="card bg-base-100 shadow-md border-l-4 border-primary">
+        <div class="card-body">
+            <h3 class="card-title">Tu Reclamo</h3>
+            <p class="text-lg leading-relaxed my-4">
+                {{ detail }}
+            </p>
+            <p class="text-base-content/60">
+                <strong>Departamento:</strong> {{ department.display_name if department else "No asignado" }}
+            </p>
+            {% if image_path %}
+            <p class="text-base-content/60">
+                <strong>Imagen adjunta:</strong> ✓ Sí
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if similar_claims %}
+<div class="alert alert-warning mb-8">
+    <div class="w-full">
+        <h2 class="font-bold text-xl mb-2">⚠️ Reclamos Similares Encontrados</h2>
+        <p class="mb-4">
+            Encontramos {{ similar_claims|length }} reclamo(s) similar(es) en el mismo departamento. 
+            Puedes adherirte a uno existente o crear uno nuevo.
+        </p>
+
+        {% for claim, similarity in similar_claims %}
+        <div class="card bg-base-100 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="flex flex-col md:flex-row justify-between items-start gap-4 mb-4">
+                    <div class="flex-1">
+                        <h4 class="font-bold">Reclamo #{{ claim.id }}</h4>
+                        <p class="text-sm text-base-content/60">
+                            Similitud: {{ "%.0f"|format(similarity * 100) }}% | 
+                            Adherentes: {{ claim.supporters_count }} | 
+                            Creado: {{ claim.created_at.strftime('%d/%m/%Y') }}
+                        </p>
+                    </div>
+                    <span class="badge badge-warning font-bold">
+                        {{ claim.status.value.upper() }}
+                    </span>
+                </div>
+
+                <div class="bg-base-200 p-3 rounded-lg mb-4">
+                    <p class="leading-relaxed">{{ claim.detail }}</p>
+                </div>
+
+                <div class="flex gap-2">
+                    <form method="POST" action="{{ url_for('claims.add_supporter', id=claim.id) }}">
+                        <button type="submit" class="btn btn-success btn-sm">
+                            ✓ Adherirme a Este Reclamo
+                        </button>
+                    </form>
+                    <a href="{{ url_for('claims.detail', id=claim.id) }}" class="btn btn-ghost btn-sm">
+                        Ver Detalles
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="alert alert-success mb-8">
+    <div>
+        <h2 class="font-bold text-xl">✓ No Hay Reclamos Similares</h2>
+        <p>No encontramos reclamos similares. Tu reclamo será nuevo.</p>
+    </div>
+</div>
+{% endif %}
+
+<div class="card bg-base-200 mb-6">
+    <div class="card-body">
+        <h3 class="card-title">¿Qué deseas hacer?</h3>
+        
+        <form method="POST" action="{{ url_for('claims.create') }}" class="mb-4">
+            <input type="hidden" name="from_preview" value="true">
+            <button type="submit" class="btn btn-primary w-full">
+                {% if similar_claims %}
+                📝 Crear Nuevo Reclamo de Todas Formas
+                {% else %}
+                ✓ Confirmar y Crear Reclamo
+                {% endif %}
+            </button>
+        </form>
+
+        <a href="{{ url_for('claims.new') }}" class="btn btn-ghost w-full">
+            ← Volver a Editar
+        </a>
+    </div>
+</div>
+
+{% if similar_claims %}
+<div class="alert alert-info">
+    <span>
+        <strong>💡 Consejo:</strong> Adherirte a un reclamo existente fortalece la solicitud y acelera su resolución. 
+        Si tu problema es exactamente el mismo, es mejor adherirte que crear uno nuevo.
+    </span>
+</div>
+{% endif %}
+
+{% endblock %}

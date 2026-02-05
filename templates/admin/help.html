@@ -1,0 +1,179 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Ayuda{% endblock %}
+{% block page_subtitle %}Guía de uso del panel de administración{% endblock %}
+
+{% block content %}
+<div class="card bg-base-100 shadow-md mb-6">
+    <div class="card-body">
+        <h3 class="card-title">👋 Bienvenido al Panel de Administración</h3>
+        <p>Este sistema te permite gestionar los reclamos de tu departamento de manera eficiente. A continuación encontrarás información útil sobre cómo usar el panel.</p>
+    </div>
+</div>
+
+<div class="card bg-base-100 shadow-md mb-6">
+    <div class="card-body">
+        <h3 class="card-title">📊 Dashboard</h3>
+        <p class="mb-4">El dashboard principal muestra estadísticas en tiempo real sobre los reclamos:</p>
+        <ul class="list-disc list-inside space-y-2 ml-4">
+            <li><strong>Total Reclamos:</strong> Cantidad total de reclamos en el sistema</li>
+            <li><strong>Pendientes:</strong> Reclamos que aún no han sido atendidos</li>
+            <li><strong>En Proceso:</strong> Reclamos que están siendo trabajados</li>
+            <li><strong>Resueltos:</strong> Reclamos completados exitosamente</li>
+        </ul>
+    </div>
+</div>
+
+<div class="card bg-base-100 shadow-md mb-6">
+    <div class="card-body">
+        <h3 class="card-title">🔐 Roles y Permisos</h3>
+        
+        <h4 class="font-semibold mt-4 text-info">Jefe de Departamento</h4>
+        <p class="mb-2">Como jefe de departamento, tienes acceso a:</p>
+        <ul class="list-disc list-inside space-y-1 ml-4 mb-4">
+            <li>Ver todos los reclamos de tu departamento</li>
+            <li>Cambiar el estado de los reclamos (Pendiente → En Proceso → Resuelto)</li>
+            <li>Ver estadísticas de tu departamento</li>
+            <li>Marcar reclamos como inválidos si corresponde</li>
+        </ul>
+        
+        <h4 class="font-semibold mt-4 text-success">Secretario Técnico</h4>
+        <p class="mb-2">El secretario técnico tiene permisos especiales:</p>
+        <ul class="list-disc list-inside space-y-1 ml-4">
+            <li>Acceso completo a todos los departamentos</li>
+            <li>Ver estadísticas globales del sistema</li>
+            <li>Gestionar reclamos de cualquier departamento</li>
+            <li>Derivar reclamos entre departamentos</li>
+            <li>Generar reportes del sistema</li>
+        </ul>
+    </div>
+</div>
+
+<div class="card bg-base-100 shadow-md mb-6">
+    <div class="card-body">
+        <h3 class="card-title">📝 Estados de Reclamos</h3>
+        <div class="overflow-x-auto mt-4">
+            <table class="table table-zebra">
+                <thead>
+                    <tr>
+                        <th>Estado</th>
+                        <th>Descripción</th>
+                        <th>Acción Sugerida</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge badge-warning font-bold">Pendiente</span></td>
+                        <td>Reclamo recién creado, esperando atención</td>
+                        <td>Revisar y cambiar a "En Proceso"</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-info font-bold">En Proceso</span></td>
+                        <td>Reclamo siendo atendido actualmente</td>
+                        <td>Trabajar en la solución</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-success font-bold">Resuelto</span></td>
+                        <td>Reclamo solucionado exitosamente</td>
+                        <td>Ninguna (completado)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge badge-error font-bold">Inválido</span></td>
+                        <td>Reclamo que no procede o está duplicado</td>
+                        <td>Ninguna (descartado)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card bg-base-100 shadow-md mb-6">
+    <div class="card-body">
+        <h3 class="card-title">💡 Buenas Prácticas</h3>
+        <ol class="list-decimal list-inside space-y-2 ml-4">
+            <li><strong>Revisa regularmente:</strong> Verifica los reclamos pendientes diariamente</li>
+            <li><strong>Actualiza el estado:</strong> Mantén los estados actualizados para dar seguimiento claro</li>
+            <li><strong>Comunica:</strong> Las notificaciones se envían automáticamente al cambiar estados</li>
+            <li><strong>Prioriza:</strong> Atiende primero los reclamos más antiguos o críticos</li>
+            <li><strong>Documenta:</strong> Próximamente podrás agregar notas a cada reclamo</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card bg-base-100 shadow-md mb-6">
+    <div class="card-body">
+        <h3 class="card-title">🔄 Flujo de Trabajo Recomendado</h3>
+        <div class="bg-base-200 p-6 rounded-lg mt-4">
+            <div class="flex flex-wrap items-center justify-center gap-2 text-lg mb-4">
+                <span class="badge badge-warning badge-lg">Pendiente</span>
+                <span class="text-base-content/50">→</span>
+                <span class="badge badge-info badge-lg">En Proceso</span>
+                <span class="text-base-content/50">→</span>
+                <span class="badge badge-success badge-lg">Resuelto</span>
+            </div>
+            <ol class="list-decimal list-inside space-y-2 ml-4">
+                <li>Usuario crea un reclamo (estado: Pendiente)</li>
+                <li>Admin revisa y comienza a trabajar (cambiar a: En Proceso)</li>
+                <li>Se resuelve el problema (cambiar a: Resuelto)</li>
+                <li>Usuario recibe notificación automática de la resolución</li>
+            </ol>
+        </div>
+    </div>
+</div>
+
+<div class="card bg-base-100 shadow-md mb-6">
+    <div class="card-body">
+        <h3 class="card-title">❓ Preguntas Frecuentes</h3>
+        
+        <div class="collapse collapse-arrow bg-base-200 mt-4">
+            <input type="checkbox" checked="checked" />
+            <div class="collapse-title font-medium">¿Puedo ver reclamos de otros departamentos?</div>
+            <div class="collapse-content">
+                <p>Solo si eres Secretario Técnico. Los Jefes de Departamento solo ven su propio departamento.</p>
+            </div>
+        </div>
+        
+        <div class="collapse collapse-arrow bg-base-200">
+            <input type="checkbox" />
+            <div class="collapse-title font-medium">¿Los usuarios reciben notificaciones?</div>
+            <div class="collapse-content">
+                <p>Sí, los usuarios reciben notificaciones automáticas cuando cambias el estado de sus reclamos.</p>
+            </div>
+        </div>
+        
+        <div class="collapse collapse-arrow bg-base-200">
+            <input type="checkbox" />
+            <div class="collapse-title font-medium">¿Qué hago si un reclamo no es válido?</div>
+            <div class="collapse-content">
+                <p>Puedes marcarlo como "Inválido". El usuario será notificado automáticamente.</p>
+            </div>
+        </div>
+        
+        <div class="collapse collapse-arrow bg-base-200">
+            <input type="checkbox" />
+            <div class="collapse-title font-medium">¿Cómo veo los adherentes de un reclamo?</div>
+            <div class="collapse-content">
+                <p>En la vista de detalle de cada reclamo puedes ver todos los adherentes.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-info mb-6">
+    <div>
+        <h3 class="font-bold">🚀 Funcionalidades Disponibles</h3>
+        <ul class="list-disc list-inside mt-2 space-y-1">
+            <li>Gestión completa de reclamos con vista de detalle</li>
+            <li>Analítica avanzada y gráficos de tendencias</li>
+            <li>Generación de reportes en PDF y HTML</li>
+            <li>Sistema de derivación de reclamos entre departamentos</li>
+            <li>Notificaciones automáticas a usuarios</li>
+        </ul>
+    </div>
+</div>
+
+<div class="text-center">
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-primary">Volver al Dashboard</a>
+</div>
+{% endblock %}

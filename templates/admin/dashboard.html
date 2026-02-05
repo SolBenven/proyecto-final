@@ -1,0 +1,150 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Dashboard Principal{% endblock %}
+{% block page_subtitle %}
+    Resumen de reclamos y estadísticas del sistema
+{% endblock %}
+
+{% block content %}
+<!-- Estadísticas Generales -->
+<div class="stats shadow w-full mb-6 bg-base-100">
+    <div class="stat">
+        <div class="stat-figure text-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+        </div>
+        <div class="stat-title">Total Reclamos</div>
+        <div class="stat-value text-primary">{{ total_claims }}</div>
+    </div>
+    
+    <div class="stat">
+        <div class="stat-figure text-warning">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+        <div class="stat-title">Pendientes</div>
+        <div class="stat-value text-warning">{{ pending_claims }}</div>
+    </div>
+    
+    <div class="stat">
+        <div class="stat-figure text-info">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+        </div>
+        <div class="stat-title">En Proceso</div>
+        <div class="stat-value text-info">{{ in_progress_claims }}</div>
+    </div>
+    
+    <div class="stat">
+        <div class="stat-figure text-success">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+        <div class="stat-title">Resueltos</div>
+        <div class="stat-value text-success">{{ resolved_claims }}</div>
+    </div>
+    
+    <div class="stat">
+        <div class="stat-figure text-error">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+        <div class="stat-title">Inválidos</div>
+        <div class="stat-value text-error">{{ invalid_claims }}</div>
+    </div>
+</div>
+
+<!-- Estadísticas por Departamento -->
+{% if dept_stats %}
+<div class="card bg-base-100 shadow-lg mb-6">
+    <div class="card-body">
+        <h2 class="card-title">📂 Reclamos por Departamento</h2>
+        {% if is_technical_secretary %}
+        <p class="text-base-content/70 mb-4">
+            Como Secretario Técnico, puedes ver todos los departamentos del sistema.
+        </p>
+        {% else %}
+        <p class="text-base-content/70 mb-4">
+            Estadísticas de tu departamento.
+        </p>
+        {% endif %}
+        
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                    <tr>
+                        <th>Departamento</th>
+                        <th class="text-center">Total</th>
+                        <th class="text-center">Pendientes</th>
+                        <th class="text-center">En Proceso</th>
+                        <th class="text-center">Resueltos</th>
+                        <th class="text-center">Inválidos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in dept_stats %}
+                    <tr>
+                        <td class="font-medium">
+                            {{ stat.department.display_name }}
+                            {% if stat.department.is_technical_secretariat %}
+                            <span class="badge badge-ghost badge-sm ml-2">Secretaría Técnica</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center font-bold">{{ stat.total }}</td>
+                        <td class="text-center"><span class="badge badge-warning">{{ stat.pending }}</span></td>
+                        <td class="text-center"><span class="badge badge-info">{{ stat.in_progress }}</span></td>
+                        <td class="text-center"><span class="badge badge-success">{{ stat.resolved }}</span></td>
+                        <td class="text-center"><span class="badge badge-error">{{ stat.invalid }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-warning mb-6">
+    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+    <div>
+        <h3 class="font-bold">Sin Departamento Asignado</h3>
+        <div class="text-xs">No tienes un departamento asignado. Contacta al administrador del sistema.</div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Acciones Rápidas -->
+<div class="card bg-base-100 shadow-lg mb-6">
+    <div class="card-body">
+        <h2 class="card-title">⚡ Acciones Rápidas</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+            <a href="{{ url_for('admin.claims_list') }}" class="btn btn-primary">
+                📝 Gestionar Reclamos
+            </a>
+            <a href="{{ url_for('admin.analytics') }}" class="btn btn-secondary">
+                📈 Ver Analítica
+            </a>
+            <a href="{{ url_for('admin.reports') }}" class="btn btn-secondary">
+                📋 Generar Reportes
+            </a>
+            <a href="{{ url_for('admin.help') }}" class="btn btn-ghost">
+                ❓ Ayuda
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Información de Permisos -->
+<div class="card bg-base-200 shadow-lg">
+    <div class="card-body">
+        <h2 class="card-title">🔒 Tus Permisos</h2>
+        <ul class="list-none space-y-2 mt-2">
+            {% if is_technical_secretary %}
+            <li class="flex items-center gap-2"><span class="text-success">✅</span> Acceso completo a todos los departamentos</li>
+            <li class="flex items-center gap-2"><span class="text-success">✅</span> Gestionar reclamos de cualquier departamento</li>
+            <li class="flex items-center gap-2"><span class="text-success">✅</span> Ver estadísticas globales</li>
+            <li class="flex items-center gap-2"><span class="text-success">✅</span> Derivar reclamos entre departamentos</li>
+            {% elif current_user.is_department_head %}
+            <li class="flex items-center gap-2"><span class="text-success">✅</span> Gestionar reclamos de tu departamento</li>
+            <li class="flex items-center gap-2"><span class="text-success">✅</span> Ver estadísticas de tu departamento</li>
+            <li class="flex items-center gap-2"><span class="text-success">✅</span> Cambiar estado de reclamos</li>
+            <li class="flex items-center gap-2"><span class="text-error">⛔</span> No puedes acceder a otros departamentos</li>
+            {% endif %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

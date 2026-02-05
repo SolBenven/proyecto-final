@@ -1,0 +1,140 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Analítica y Estadísticas{% endblock %}
+{% block page_subtitle %}
+    Visualización de métricas y tendencias de reclamos
+{% endblock %}
+
+{% block content %}
+<!-- Información de contexto -->
+<div class="alert alert-info mb-6">
+    {% if is_technical_secretary %}
+    <span>📊 <strong>Vista global:</strong> Estas analíticas incluyen todos los departamentos del sistema.</span>
+    {% else %}
+    <span>📊 <strong>Vista departamental:</strong> Estas analíticas corresponden a tu departamento asignado.</span>
+    {% endif %}
+</div>
+
+<!-- Resumen de Estadísticas -->
+<div class="card bg-base-100 shadow-md mb-6">
+    <div class="card-body">
+        <h3 class="card-title">📈 Resumen General</h3>
+        
+        {% if stats.total_claims > 0 %}
+        <div class="stats stats-vertical lg:stats-horizontal shadow w-full">
+            <div class="stat">
+                <div class="stat-title">Total Reclamos</div>
+                <div class="stat-value">{{ stats.total_claims }}</div>
+            </div>
+            {% if stats.status_counts.get('Pendiente', 0) > 0 %}
+            <div class="stat">
+                <div class="stat-title">Pendientes</div>
+                <div class="stat-value text-warning">{{ stats.status_counts.get('Pendiente', 0) }}</div>
+            </div>
+            {% endif %}
+            {% if stats.status_counts.get('En proceso', 0) > 0 %}
+            <div class="stat">
+                <div class="stat-title">En Proceso</div>
+                <div class="stat-value text-info">{{ stats.status_counts.get('En proceso', 0) }}</div>
+            </div>
+            {% endif %}
+            {% if stats.status_counts.get('Resuelto', 0) > 0 %}
+            <div class="stat">
+                <div class="stat-title">Resueltos</div>
+                <div class="stat-value text-success">{{ stats.status_counts.get('Resuelto', 0) }}</div>
+            </div>
+            {% endif %}
+            {% if stats.status_counts.get('Inválido', 0) > 0 %}
+            <div class="stat">
+                <div class="stat-title">Inválidos</div>
+                <div class="stat-value text-error">{{ stats.status_counts.get('Inválido', 0) }}</div>
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="text-center py-10 text-base-content/60">
+            <div class="text-5xl mb-4">📭</div>
+            <p class="text-lg">No hay reclamos registrados para analizar.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if stats.total_claims > 0 %}
+<!-- Gráficos -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Gráfico Circular -->
+    <div class="card bg-base-100 shadow-md">
+        <div class="card-body">
+            <h3 class="card-title">🥧 Distribución por Estado</h3>
+            {% if pie_chart %}
+            <div class="text-center">
+                <img src="data:image/png;base64,{{ pie_chart }}" alt="Gráfico circular de distribución de reclamos por estado" class="max-w-full h-auto rounded-lg">
+            </div>
+            {% else %}
+            <div class="text-center py-10 text-base-content/60">
+                <div class="text-5xl mb-4">📊</div>
+                <p>No hay datos suficientes para generar el gráfico.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Nube de Palabras -->
+    <div class="card bg-base-100 shadow-md">
+        <div class="card-body">
+            <h3 class="card-title">☁️ Nube de Palabras</h3>
+            {% if wordcloud %}
+            <div class="text-center">
+                <img src="data:image/png;base64,{{ wordcloud }}" alt="Nube de palabras de reclamos" class="max-w-full h-auto rounded-lg border border-base-300">
+            </div>
+            {% else %}
+            <div class="text-center py-10 text-base-content/60">
+                <div class="text-5xl mb-4">💬</div>
+                <p>No hay suficientes palabras para generar la nube.</p>
+                {% if not wordcloud and keywords %}
+                <p class="text-sm mt-2">(La librería wordcloud no está instalada)</p>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Palabras Frecuentes -->
+{% if keywords %}
+<div class="card bg-base-100 shadow-md mb-6">
+    <div class="card-body">
+        <h3 class="card-title">🔤 Palabras Más Frecuentes</h3>
+        <p class="text-base-content/60 mb-4">
+            Las palabras más mencionadas en los reclamos de tu ámbito.
+        </p>
+        <div class="flex flex-wrap gap-2">
+            {% for word, count in keywords.items() %}
+            <span class="badge badge-lg badge-info gap-2">
+                {{ word }}
+                <span class="badge badge-sm">{{ count }}</span>
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
+
+<!-- Acciones -->
+<div class="card bg-base-100 shadow-md">
+    <div class="card-body">
+        <h3 class="card-title">⚡ Acciones</h3>
+        <div class="flex gap-4 flex-wrap mt-4">
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-ghost">
+                ← Volver al Dashboard
+            </a>
+            <a href="{{ url_for('admin.claims_list') }}" class="btn btn-primary">
+                📝 Ver Reclamos
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

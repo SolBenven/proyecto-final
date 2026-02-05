@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Reclamo #{{ claim.id }} - Sistema de Reclamos{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('claims.list') }}" class="btn btn-ghost btn-sm">
+        ← Volver a la lista
+    </a>
+</div>
+
+<div class="card bg-base-100 shadow-md">
+    <div class="card-body">
+        <!-- Encabezado -->
+        <div class="flex flex-col md:flex-row justify-between items-start gap-4 border-b border-base-300 pb-4 mb-4">
+            <div>
+                <h1 class="text-2xl font-bold">Reclamo #{{ claim.id }}</h1>
+                <p class="text-base-content/60 mt-1">
+                    Creado el {{ claim.created_at.strftime('%d/%m/%Y a las %H:%M') }}
+                </p>
+                {% if claim.updated_at != claim.created_at %}
+                <p class="text-base-content/50 text-sm">
+                    Última actualización: {{ claim.updated_at.strftime('%d/%m/%Y a las %H:%M') }}
+                </p>
+                {% endif %}
+            </div>
+            <div>
+                {% if claim.status.value == 'Pendiente' %}
+                    <span class="badge badge-warning badge-lg font-bold">{{ claim.status.value.upper() }}</span>
+                {% elif claim.status.value == 'En proceso' %}
+                    <span class="badge badge-info badge-lg font-bold">{{ claim.status.value.upper() }}</span>
+                {% elif claim.status.value == 'Resuelto' %}
+                    <span class="badge badge-success badge-lg font-bold">{{ claim.status.value.upper() }}</span>
+                {% else %}
+                    <span class="badge badge-error badge-lg font-bold">{{ claim.status.value.upper() }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Información del Reclamo -->
+        <div class="mb-6">
+            <h3 class="font-semibold text-lg mb-2">Detalle del Problema</h3>
+            <div class="bg-base-200 p-4 rounded-lg">
+                <p class="leading-relaxed">{{ claim.detail }}</p>
+            </div>
+        </div>
+
+        <!-- Imagen del Reclamo -->
+        {% if claim.image_path %}
+        <div class="mb-6">
+            <h3 class="font-semibold text-lg mb-2">Imagen Adjunta</h3>
+            <div class="bg-base-200 p-4 rounded-lg">
+                <img 
+                    src="/{{ claim.image_path }}" 
+                    alt="Imagen del reclamo #{{ claim.id }}"
+                    class="max-w-full h-auto rounded-lg"
+                >
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Información Adicional -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+                <h4 class="text-sm uppercase text-base-content/60 font-semibold mb-2">Departamento</h4>
+                <p class="text-lg">📍 {{ claim.department.display_name }}</p>
+            </div>
+            <div>
+                <h4 class="text-sm uppercase text-base-content/60 font-semibold mb-2">Creado por</h4>
+                <p class="text-lg">👤 {{ claim.creator.full_name }}</p>
+                <p class="text-sm text-base-content/60">{{ claim.creator.email }}</p>
+            </div>
+        </div>
+
+        <!-- Adherentes -->
+        <div class="bg-base-200 p-4 rounded-lg mb-6">
+            <h4 class="font-semibold mb-2">👥 Adherentes</h4>
+            <p class="text-xl font-bold text-primary">
+                {{ claim.supporters_count }} persona(s) apoyan este reclamo
+            </p>
+        </div>
+
+
+        <!-- Acciones -->
+        {% if current_user.is_authenticated %}
+        <div class="border-t border-base-300 pt-6">
+            <!-- Panel de Admin para cambiar estado -->
+            {% if current_user.user_type == 'admin_user' %}
+            <div class="alert alert-warning mb-6">
+                <div class="flex flex-col md:flex-row gap-4 items-start md:items-center w-full">
+                    <div class="flex-1">
+                        <h4 class="font-bold">🔧 Panel de Administración</h4>
+                    </div>
+                    <form method="POST" action="{{ url_for('claims.update_status', id=claim.id) }}" class="flex gap-2 items-center">
+                        <label for="newStatus" class="font-semibold whitespace-nowrap">Cambiar Estado:</label>
+                        <select id="newStatus" name="status" class="select select-bordered select-sm">
+                            <option value="pending" {% if claim.status.value == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                            <option value="in_progress" {% if claim.status.value == 'En proceso' %}selected{% endif %}>En Proceso</option>
+                            <option value="resolved" {% if claim.status.value == 'Resuelto' %}selected{% endif %}>Resuelto</option>
+                            <option value="invalid" {% if claim.status.value == 'Inválido' %}selected{% endif %}>Inválido</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-sm">Actualizar</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if current_user.id != claim.creator_id %}
+                {% if not is_supporter %}
+                    <!-- Formulario para adherirse -->
+                    <form method="POST" action="{{ url_for('claims.add_supporter', id=claim.id) }}">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            👍 Adherirse a este reclamo
+                        </button>
+                    </form>
+                    <p class="mt-2 text-sm text-base-content/60">
+                        Al adherirte, apoyas este reclamo y recibirás notificaciones de sus cambios de estado.
+                    </p>
+                {% else %}
+                    <!-- Ya adherido -->
+                    <div class="alert alert-success mb-4">
+                        <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between w-full">
+                            <span class="font-bold">✓ Ya estás adherido a este reclamo</span>
+                            <form method="POST" action="{{ url_for('claims.remove_supporter', id=claim.id) }}">
+                                <button type="submit" class="btn btn-error btn-sm">
+                                    Dejar de adherirse
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <p class="text-base-content/60 italic">
+                    Este es tu reclamo. No puedes adherirte a tus propios reclamos.
+                </p>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="border-t border-base-300 pt-6 text-center">
+            <p class="text-base-content/60 mb-4">
+                Debes iniciar sesión para adherirte a este reclamo
+            </p>
+            <a href="{{ url_for('auth.end_user.login') }}" class="btn btn-primary">
+                Iniciar Sesión
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends "admin/base.html" %}
+
+{% block page_title %}Reclamo #{{ claim.id }}{% endblock %}
+{% block page_subtitle %}Detalle y gestión del reclamo{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('admin.claims_list') }}" class="btn btn-ghost btn-sm">
+        ← Volver a la lista
+    </a>
+</div>
+
+<div class="card bg-base-100 shadow-lg">
+    <div class="card-body">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-start gap-4 pb-4 border-b border-base-300">
+            <div>
+                <h2 class="card-title text-2xl">📝 Reclamo #{{ claim.id }}</h2>
+                <p class="text-base-content/70 mt-1">
+                    Creado el {{ claim.created_at.strftime('%d/%m/%Y a las %H:%M') if claim.created_at else '-' }}
+                </p>
+                {% if claim.updated_at and claim.updated_at != claim.created_at %}
+                <p class="text-base-content/50 text-sm">
+                    Última actualización: {{ claim.updated_at.strftime('%d/%m/%Y a las %H:%M') }}
+                </p>
+                {% endif %}
+            </div>
+            <div class="text-right">
+                <p class="font-semibold text-sm text-base-content/70 mb-1">Estado actual</p>
+                {% if claim.status.value == 'Pendiente' %}
+                    <span class="badge badge-warning badge-lg">{{ claim.status.value }}</span>
+                {% elif claim.status.value == 'En proceso' %}
+                    <span class="badge badge-info badge-lg">{{ claim.status.value }}</span>
+                {% elif claim.status.value == 'Resuelto' %}
+                    <span class="badge badge-success badge-lg">{{ claim.status.value }}</span>
+                {% else %}
+                    <span class="badge badge-error badge-lg">{{ claim.status.value }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Info Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+                <p class="text-xs uppercase text-base-content/50 font-semibold">Departamento</p>
+                <p class="mt-1">📍 {{ claim.department.display_name if claim.department else 'Sin departamento' }}</p>
+            </div>
+            <div>
+                <p class="text-xs uppercase text-base-content/50 font-semibold">Creador (ID)</p>
+                <p class="mt-1">👤 {{ claim.creator_id }}</p>
+            </div>
+        </div>
+
+        <!-- Supporters -->
+        <div class="mt-4">
+            <p class="text-xs uppercase text-base-content/50 font-semibold">Adherentes (IDs)</p>
+            <p class="mt-1">
+                {% if supporters_ids %}
+                    {{ supporters_ids | join(', ') }}
+                {% else %}
+                    <span class="text-base-content/50">-</span>
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Detail -->
+        <div class="mt-4">
+            <p class="text-xs uppercase text-base-content/50 font-semibold">Detalle</p>
+            <div class="bg-base-200 p-4 rounded-lg mt-2">
+                <p class="whitespace-pre-wrap">{{ claim.detail }}</p>
+            </div>
+        </div>
+
+        <!-- Image -->
+        {% if claim.image_path %}
+        <div class="mt-4">
+            <p class="text-xs uppercase text-base-content/50 font-semibold">Imagen adjunta</p>
+            <div class="bg-base-200 p-4 rounded-lg mt-2">
+                <img src="/{{ claim.image_path }}" alt="Imagen del reclamo #{{ claim.id }}" class="max-w-full h-auto rounded-lg" />
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Change Status -->
+        <div class="divider"></div>
+        <div>
+            <h3 class="font-semibold text-lg mb-3">🔧 Cambiar estado</h3>
+            <form method="POST" action="{{ url_for('claims.update_status', id=claim.id) }}" class="flex flex-wrap gap-3 items-center">
+                <select name="status" class="select select-bordered">
+                    <option value="pending" {% if claim.status.value == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                    <option value="in_progress" {% if claim.status.value == 'En proceso' %}selected{% endif %}>En Proceso</option>
+                    <option value="resolved" {% if claim.status.value == 'Resuelto' %}selected{% endif %}>Resuelto</option>
+                    <option value="invalid" {% if claim.status.value == 'Inválido' %}selected{% endif %}>Inválido</option>
+                </select>
+                <button type="submit" class="btn btn-primary">Actualizar</button>
+            </form>
+        </div>
+
+        <!-- Transfer Section -->
+        {% if can_transfer %}
+        <div class="divider"></div>
+        <div>
+            <h3 class="font-semibold text-lg mb-3">🔀 Derivar a otro departamento</h3>
+            <form method="POST" action="{{ url_for('admin.create_transfer', claim_id=claim.id) }}" class="space-y-3">
+                <div class="flex flex-wrap gap-3 items-center">
+                    <select name="department_id" required class="select select-bordered w-full max-w-xs">
+                        <option value="">-- Seleccionar departamento --</option>
+                        {% for dept in available_departments %}
+                            <option value="{{ dept.id }}">{{ dept.display_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <textarea name="reason" placeholder="Motivo de la derivación (opcional)" 
+                    class="textarea textarea-bordered w-full" rows="2"></textarea>
+                <button type="submit" class="btn btn-secondary">
+                    🔀 Derivar Reclamo
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Transfer History -->
+{% if transfers %}
+<div class="card bg-base-100 shadow-lg mt-6">
+    <div class="card-body">
+        <h3 class="card-title">📋 Historial de Derivaciones</h3>
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Desde</th>
+                        <th>Hacia</th>
+                        <th>Derivado por</th>
+                        <th>Motivo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transfer in transfers %}
+                    <tr>
+                        <td>{{ transfer.transferred_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>{{ transfer.from_department.display_name }}</td>
+                        <td>{{ transfer.to_department.display_name }}</td>
+                        <td>{{ transfer.transferred_by.first_name }} {{ transfer.transferred_by.last_name }}</td>
+                        <td>{{ transfer.reason if transfer.reason else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

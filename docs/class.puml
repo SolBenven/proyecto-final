@@ -1,0 +1,158 @@
+@startuml
+
+skinparam classAttributeIconSize 0
+
+' Enums
+enum Cloister {
+    STUDENT
+    TEACHER
+    PAYS
+}
+
+enum AdminRole {
+    DEPARTMENT_HEAD
+    TECHNICAL_SECRETARY
+}
+
+enum ClaimStatus {
+    INVALID
+    PENDING
+    IN_PROGRESS
+    RESOLVED
+}
+
+' Models - Herencia de Usuarios
+abstract class User {
+    +id : int
+    +first_name : str
+    +last_name : str
+    +email : str
+    +username : str
+    +password_hash : str
+    +user_type : str
+    --
+    +set_password(password :  str)
+    +check_password(password : str) : bool
+    +full_name() : str
+}
+
+class EndUser {
+    +cloister : Cloister
+    +created_claims : List
+    +supported_claims : List
+    --
+    +full_name() : str
+}
+
+class AdminUser {
+    +department_id : int
+    +admin_role : AdminRole
+    +department : Department
+    --
+    +is_department_head() : bool
+    +is_technical_secretary() : bool
+    +full_name() : str
+}
+
+class Department {
+    +id : int
+    +name : str
+    +display_name : str
+    +is_technical_secretariat : bool
+    +created_at : datetime
+    +claims : List
+    +admin_users : List
+}
+
+class Claim {
+    +id : int
+    +detail : str
+    +status : ClaimStatus
+    +department_id : int
+    +creator_id :  int
+    +image_path : str
+    +created_at : datetime
+    +updated_at : datetime
+    +department :  Department
+    +creator : EndUser
+    +supporters : List
+    +status_history : List
+    +transfers : List
+    --
+    +supporters_count() : int
+}
+
+class ClaimSupporter {
+    +id : int
+    +claim_id : int
+    +user_id :  int
+    +created_at : datetime
+    +claim :  Claim
+    +user : EndUser
+}
+
+class ClaimStatusHistory {
+    +id : int
+    +claim_id :  int
+    +old_status : ClaimStatus
+    +new_status : ClaimStatus
+    +changed_by_id :  int
+    +changed_at : datetime
+    +claim :  Claim
+    +changed_by : AdminUser
+    +user_notifications : List
+}
+
+class ClaimTransfer {
+    +id : int
+    +claim_id :  int
+    +from_department_id :  int
+    +to_department_id :  int
+    +transferred_by_id :  int
+    +reason : str
+    +transferred_at : datetime
+    +claim :  Claim
+    +from_department : Department
+    +to_department : Department
+    +transferred_by :  AdminUser
+}
+
+class UserNotification {
+    +id :  int
+    +user_id : int
+    +claim_status_history_id :  int
+    +read_at : datetime
+    +created_at : datetime
+    +user : User
+    +claim_status_history : ClaimStatusHistory
+    --
+    +is_read() : bool
+    +mark_as_read()
+}
+
+' Relaciones de Herencia
+User <|-- EndUser
+User <|-- AdminUser
+
+' Relaciones con Enums
+EndUser ..> Cloister
+AdminUser ..> AdminRole
+Claim ..> ClaimStatus
+
+' Relaciones entre Clases
+AdminUser "*" --> "0.. 1" Department : pertenece a
+Department "1" --> "*" Claim : tiene
+EndUser "1" --> "*" Claim :  crea
+Claim "*" --> "1" Department : asignado a
+ClaimSupporter "*" --> "1" Claim : apoya
+ClaimSupporter "*" --> "1" EndUser : adherente
+ClaimStatusHistory "*" --> "1" Claim : rastrea
+ClaimStatusHistory "*" --> "1" AdminUser :  cambiado por
+ClaimTransfer "*" --> "1" Claim : transfiere
+ClaimTransfer "*" --> "1" Department : desde
+ClaimTransfer "*" --> "1" Department : hacia
+ClaimTransfer "*" --> "1" AdminUser : transferido por
+UserNotification "*" --> "1" User : notifica a
+UserNotification "*" --> "1" ClaimStatusHistory : asociada a
+
+@enduml

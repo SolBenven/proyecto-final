@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Mis Reclamos{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">Mis Reclamos</h1>
+
+{% if claims %}
+    <p class="mb-4 text-base-content/70">Tienes {{ claims|length }} reclamo(s) creado(s)</p>
+    
+    <div class="flex flex-col gap-4">
+        {% for claim in claims %}
+        <div class="card bg-base-100 shadow-md hover:shadow-lg transition-shadow">
+            <div class="card-body">
+                <div class="flex flex-col md:flex-row justify-between items-start gap-4">
+                    <h3 class="card-title">
+                        <a href="{{ url_for('claims.detail', id=claim.id) }}" class="link link-primary hover:link-hover">
+                            Reclamo #{{ claim.id }}
+                        </a>
+                    </h3>
+                    <span class="badge 
+                        {% if claim.status.value == 'Pendiente' %}badge-warning
+                        {% elif claim.status.value == 'En proceso' %}badge-info
+                        {% elif claim.status.value == 'Resuelto' %}badge-success
+                        {% else %}badge-neutral{% endif %}">
+                        {{ claim.status.value|upper }}
+                    </span>
+                </div>
+                
+                <div class="tooltip tooltip-right w-fit" data-tip="{{ claim.detail }}">
+                    <p><strong>Detalle:</strong> {{ claim.detail[:100] }}{% if claim.detail|length > 100 %}...{% endif %}</p>
+                </div>
+                <p><strong>Departamento:</strong> {{ claim.department.name }}</p>
+                <p><strong>Adherentes:</strong> {{ claim.supporters|length }}</p>
+                <p class="text-sm text-base-content/60"><strong>Creado:</strong> {{ claim.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+                
+                <div class="card-actions justify-end mt-4">
+                    <a href="{{ url_for('claims.detail', id=claim.id) }}" class="btn btn-primary btn-sm">
+                        Ver Detalles
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-16">
+        <div class="text-5xl mb-4">📭</div>
+        <p class="text-lg text-base-content/60 mb-6">No has creado ningún reclamo todavía.</p>
+        <a href="{{ url_for('claims.new') }}" class="btn btn-success">
+            Crear Nuevo Reclamo
+        </a>
+    </div>
+{% endif %}
+
+<div class="divider my-8"></div>
+<a href="{{ url_for('claims.list') }}" class="btn btn-ghost">
+    ← Volver a todos los reclamos
+</a>
+{% endblock %}

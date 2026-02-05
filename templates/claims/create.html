@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Crear Reclamo - Sistema de Reclamos{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">Crear Nuevo Reclamo</h1>
+
+<form method="POST" action="{{ url_for('claims.preview') }}" enctype="multipart/form-data" class="max-w-2xl">
+    <div class="form-control mb-4">
+        <label class="label" for="detail">
+            <span class="label-text font-semibold">Detalle del Problema *</span>
+        </label>
+        <textarea 
+            name="detail" 
+            id="detail" 
+            required 
+            rows="6" 
+            class="textarea textarea-bordered w-full"
+            placeholder="Describa el problema de forma clara y detallada..."
+        ></textarea>
+    </div>
+
+    <div class="form-control mb-4">
+        <label class="label" for="image">
+            <span class="label-text font-semibold">Imagen (opcional)</span>
+        </label>
+        <input 
+            type="file" 
+            name="image" 
+            id="image" 
+            accept="image/png,image/jpeg,image/jpg,image/gif"
+            class="file-input file-input-bordered w-full"
+        >
+        <label class="label">
+            <span class="label-text-alt text-base-content/60">
+                Puede adjuntar una imagen (PNG, JPG, GIF). Máximo 5MB.
+            </span>
+        </label>
+    </div>
+
+    <div class="alert alert-info mb-6">
+        <span>
+            <strong>ℹ️ Nota:</strong> Antes de crear tu reclamo, el sistema buscará automáticamente reclamos similares. 
+            Si existen, podrás adherirte a uno existente o crear uno nuevo.
+        </span>
+    </div>
+
+    <div class="flex gap-4">
+        <button type="submit" class="btn btn-success">
+            Continuar →
+        </button>
+        <a href="{{ url_for('claims.list') }}" class="btn btn-ghost">
+            Cancelar
+        </a>
+    </div>
+</form>
+
+{% endblock %}

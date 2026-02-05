@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Iniciar Sesión - Aplicación Flask{% endblock %}
+
+{% block content %}
+<div class="flex justify-center">
+    <div class="card w-full max-w-md bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-2xl justify-center mb-4">Iniciar Sesión</h2>
+            
+            <form method="post">
+                <div class="form-control mb-4">
+                    <label class="label" for="username">
+                        <span class="label-text">Nombre de usuario</span>
+                    </label>
+                    <input type="text" id="username" name="username" class="input input-bordered w-full" required placeholder="Ingresa tu usuario">
+                </div>
+                
+                <div class="form-control mb-6">
+                    <label class="label" for="password">
+                        <span class="label-text">Contraseña</span>
+                    </label>
+                    <input type="password" id="password" name="password" class="input input-bordered w-full" required placeholder="Ingresa tu contraseña">
+                </div>
+                
+                <button type="submit" class="btn btn-primary w-full">Ingresar</button>
+            </form>
+            
+            <div class="divider">o</div>
+            
+            <p class="text-center text-base-content/70">
+                ¿No tienes cuenta? 
+                <a href="{{ url_for('auth.end_user.register') }}" class="link link-primary">Regístrate aquí</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
