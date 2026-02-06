@@ -1,23 +1,21 @@
-"""Tests básicos de Fase 10: Gestión de Reclamos (Admin)."""
+"""Tests básicos para AdminHelper (Fase 10: Gestión de Reclamos Admin)."""
 
 import unittest
 
 from modules.config import db
-from modules.models.claim import ClaimStatus
-from modules.models.user.admin_user import AdminRole
+from modules.models.claim import Claim, ClaimStatus
+from modules.models.user.admin_user import AdminRole, AdminUser
 from modules.models.user.end_user import Cloister, EndUser
-from modules.services.claim_service import ClaimService
-from modules.services.user_service import UserService
 from tests.conftest import BaseTestCase
 
 
-class TestAdminClaimManagement(BaseTestCase):
-    """Tests para gestión de reclamos por administradores"""
+class TestAdminHelper(BaseTestCase):
+    """Tests para AdminHelper"""
 
     def setUp(self):
         """Configuración antes de cada test"""
         super().setUp()
-        
+
         # Crear usuario final
         user = EndUser(
             first_name="Usuario",
@@ -35,10 +33,10 @@ class TestAdminClaimManagement(BaseTestCase):
         dept1_id = self.sample_departments["dept1_id"]
         dept2_id = self.sample_departments["dept2_id"]
 
-        c1, _ = ClaimService.create_claim(
+        c1, _ = Claim.create(
             user_id=self.end_user_id, detail="Reclamo dept1", department_id=dept1_id
         )
-        c2, _ = ClaimService.create_claim(
+        c2, _ = Claim.create(
             user_id=self.end_user_id, detail="Reclamo dept2", department_id=dept2_id
         )
         self.assertIsNotNone(c1)
@@ -48,7 +46,7 @@ class TestAdminClaimManagement(BaseTestCase):
 
         # Crear admin jefe de departamento
         dept1_id = self.sample_departments["dept1_id"]
-        user, error = UserService.create_admin_user(
+        user, error = AdminUser.create(
             first_name="Jefe",
             last_name="Depto",
             email="head@test.com",
@@ -92,10 +90,10 @@ class TestAdminClaimManagement(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("No tienes permiso".encode(), response.data)
 
-        claim = ClaimService.get_claim_by_id(self.dept2_claim_id)
+        claim = Claim.get_by_id(self.dept2_claim_id)
         self.assertIsNotNone(claim)
         self.assertEqual(claim.status, ClaimStatus.PENDING)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -14,8 +14,8 @@ from modules.models.claim import Claim
 from modules.models.department import Department
 from modules.models.user.admin_user import AdminRole, AdminUser
 from modules.models.user.end_user import Cloister, EndUser
-from modules.services.claim_service import ClaimService
-from modules.services.image_service import ImageService
+from modules.models.claim import Claim
+from modules.image_handler import ImageHandler
 
 
 class TestImages(BaseTestCase):
@@ -45,41 +45,45 @@ class TestImages(BaseTestCase):
             b"\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
         )
         self.test_image = FileStorage(
-            stream=io.BytesIO(png_data), filename="test_image.png", content_type="image/png"
+            stream=io.BytesIO(png_data),
+            filename="test_image.png",
+            content_type="image/png",
         )
 
         # Crear imagen grande de prueba
         large_data = b"x" * (6 * 1024 * 1024)  # 6MB
         self.large_image = FileStorage(
-            stream=io.BytesIO(large_data), filename="large.png", content_type="image/png"
+            stream=io.BytesIO(large_data),
+            filename="large.png",
+            content_type="image/png",
         )
 
     def test_allowed_file(self):
         """Verifica que se validen correctamente las extensiones permitidas"""
-        self.assertTrue(ImageService.allowed_file("image.png"))
-        self.assertTrue(ImageService.allowed_file("image.jpg"))
-        self.assertTrue(ImageService.allowed_file("image.jpeg"))
-        self.assertTrue(ImageService.allowed_file("image.gif"))
-        self.assertFalse(ImageService.allowed_file("image.bmp"))
-        self.assertFalse(ImageService.allowed_file("image.txt"))
-        self.assertFalse(ImageService.allowed_file("image"))
+        self.assertTrue(ImageHandler.allowed_file("image.png"))
+        self.assertTrue(ImageHandler.allowed_file("image.jpg"))
+        self.assertTrue(ImageHandler.allowed_file("image.jpeg"))
+        self.assertTrue(ImageHandler.allowed_file("image.gif"))
+        self.assertFalse(ImageHandler.allowed_file("image.bmp"))
+        self.assertFalse(ImageHandler.allowed_file("image.txt"))
+        self.assertFalse(ImageHandler.allowed_file("image"))
 
     def test_validate_image_success(self):
         """Verifica que se valide correctamente una imagen válida"""
-        is_valid, error = ImageService.validate_image(self.test_image)
+        is_valid, error = ImageHandler.validate_image(self.test_image)
         self.assertTrue(is_valid)
         self.assertIsNone(error)
 
     def test_validate_image_no_file(self):
         """Verifica que se rechace cuando no hay archivo"""
-        is_valid, error = ImageService.validate_image(None)
+        is_valid, error = ImageHandler.validate_image(None)
         self.assertFalse(is_valid)
         self.assertIn("no se proporcionó", error.lower())
 
     def test_validate_image_empty_filename(self):
         """Verifica que se rechace un archivo sin nombre"""
         empty_file = FileStorage(stream=io.BytesIO(b""), filename="")
-        is_valid, error = ImageService.validate_image(empty_file)
+        is_valid, error = ImageHandler.validate_image(empty_file)
         self.assertFalse(is_valid)
         self.assertIn("no se proporcionó", error.lower())
 
@@ -88,19 +92,19 @@ class TestImages(BaseTestCase):
         invalid_file = FileStorage(
             stream=io.BytesIO(b"data"), filename="file.txt", content_type="text/plain"
         )
-        is_valid, error = ImageService.validate_image(invalid_file)
+        is_valid, error = ImageHandler.validate_image(invalid_file)
         self.assertFalse(is_valid)
         self.assertIn("no permitido", error.lower())
 
     def test_validate_image_too_large(self):
         """Verifica que se rechacen imágenes muy grandes"""
-        is_valid, error = ImageService.validate_image(self.large_image)
+        is_valid, error = ImageHandler.validate_image(self.large_image)
         self.assertFalse(is_valid)
         self.assertTrue("excede" in error.lower() or "5mb" in error.lower())
 
     def test_save_claim_image_success(self):
         """Verifica que se guarde correctamente una imagen"""
-        saved_path, error = ImageService.save_claim_image(self.test_image)
+        saved_path, error = ImageHandler.save_claim_image(self.test_image)
 
         self.assertIsNone(error)
         self.assertIsNotNone(saved_path)
@@ -112,12 +116,12 @@ class TestImages(BaseTestCase):
         self.assertTrue(file_path.exists())
 
         # Limpiar
-        ImageService.delete_claim_image(saved_path)
+        ImageHandler.delete_claim_image(saved_path)
 
     def test_save_claim_image_invalid(self):
         """Verifica que se rechace guardar una imagen inválida"""
         invalid_file = FileStorage(stream=io.BytesIO(b"data"), filename="file.txt")
-        saved_path, error = ImageService.save_claim_image(invalid_file)
+        saved_path, error = ImageHandler.save_claim_image(invalid_file)
 
         self.assertIsNone(saved_path)
         self.assertIsNotNone(error)
@@ -125,26 +129,26 @@ class TestImages(BaseTestCase):
     def test_delete_claim_image(self):
         """Verifica que se elimine correctamente una imagen"""
         # Primero guardar
-        saved_path, _ = ImageService.save_claim_image(self.test_image)
+        saved_path, _ = ImageHandler.save_claim_image(self.test_image)
         self.assertTrue(Path(saved_path).exists())
 
         # Luego eliminar
-        result = ImageService.delete_claim_image(saved_path)
+        result = ImageHandler.delete_claim_image(saved_path)
         self.assertTrue(result)
         self.assertFalse(Path(saved_path).exists())
 
     def test_delete_nonexistent_image(self):
         """Verifica que se maneje correctamente la eliminación de imagen inexistente"""
-        result = ImageService.delete_claim_image("uploads/claims/nonexistent.png")
+        result = ImageHandler.delete_claim_image("uploads/claims/nonexistent.png")
         self.assertFalse(result)
 
     def test_create_claim_with_image(self):
         """Verifica que se pueda crear un reclamo con imagen"""
         # Guardar imagen primero
-        image_path, _ = ImageService.save_claim_image(self.test_image)
+        image_path, _ = ImageHandler.save_claim_image(self.test_image)
 
         # Crear reclamo con imagen
-        claim, error = ClaimService.create_claim(
+        claim, error = Claim.create(
             user_id=self.user1_id,
             detail="Reclamo con imagen de prueba",
             department_id=1,
@@ -157,11 +161,11 @@ class TestImages(BaseTestCase):
         self.assertTrue(Path(claim.image_path).exists())
 
         # Limpiar
-        ImageService.delete_claim_image(image_path)
+        ImageHandler.delete_claim_image(image_path)
 
     def test_create_claim_without_image(self):
         """Verifica que se pueda crear un reclamo sin imagen"""
-        claim, error = ClaimService.create_claim(
+        claim, error = Claim.create(
             user_id=self.user1_id,
             detail="Reclamo sin imagen",
             department_id=1,
@@ -175,11 +179,11 @@ class TestImages(BaseTestCase):
     def test_create_claim_cleanup_on_error(self):
         """Verifica que se limpie la imagen si falla la creación del reclamo"""
         # Guardar imagen
-        image_path, _ = ImageService.save_claim_image(self.test_image)
+        image_path, _ = ImageHandler.save_claim_image(self.test_image)
         self.assertTrue(Path(image_path).exists())
 
         # Intentar crear reclamo con datos inválidos (sin detalle)
-        claim, error = ClaimService.create_claim(
+        claim, error = Claim.create(
             user_id=self.user1_id,
             detail="",  # Detalle vacío causará error
             department_id=1,
@@ -191,9 +195,9 @@ class TestImages(BaseTestCase):
 
         # En un caso real, el controller debería limpiar la imagen
         # Simulamos esa limpieza aquí
-        ImageService.delete_claim_image(image_path)
+        ImageHandler.delete_claim_image(image_path)
         self.assertFalse(Path(image_path).exists())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

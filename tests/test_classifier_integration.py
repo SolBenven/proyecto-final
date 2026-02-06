@@ -7,8 +7,8 @@ from tests.conftest import BaseTestCase
 
 from modules.config import db
 from modules.models import Department, EndUser, Cloister
-from modules.services.claim_service import ClaimService
-from modules.services.classifier_service import classifier_service
+from modules.models.claim import Claim
+from modules.classifier import classifier
 
 
 class TestClassifierIntegration(BaseTestCase):
@@ -23,7 +23,7 @@ class TestClassifierIntegration(BaseTestCase):
             ("infraestructura", "Infraestructura", False),
             ("sistemas", "Sistemas", False),
         ]
-        
+
         for name, display_name, is_ts in dept_configs:
             existing = db.session.query(Department).filter_by(name=name).first()
             if not existing:
@@ -70,11 +70,11 @@ class TestClassifierIntegration(BaseTestCase):
     def test_claim_classification_with_trained_model(self):
         """Test que un reclamo se clasifica automáticamente con modelo entrenado"""
         # Verificar que el modelo está disponible
-        if not classifier_service.is_model_available():
+        if not classifier.is_model_available():
             self.skipTest("Modelo no entrenado. Ejecutar train_classifier.py primero")
 
         # Crear reclamo sin especificar departamento (clasificación automática)
-        claim, error = ClaimService.create_claim(
+        claim, error = Claim.create(
             user_id=self.user_id,
             detail="El proyector del aula 301 no funciona correctamente",
             department_id=None,  # Sin especificar → clasificación automática
@@ -92,16 +92,16 @@ class TestClassifierIntegration(BaseTestCase):
     def test_claim_fallback_to_secretaria_without_model(self):
         """Test que sin modelo se asigna a Secretaría Técnica"""
         # Simular que no hay modelo disponible
-        original_available = classifier_service.is_model_available
+        original_available = classifier.is_model_available
 
         def mock_not_available():
             return False
 
-        classifier_service.is_model_available = mock_not_available
+        classifier.is_model_available = mock_not_available
 
         try:
             # Crear reclamo sin departamento
-            claim, error = ClaimService.create_claim(
+            claim, error = Claim.create(
                 user_id=self.user_id,
                 detail="Algún problema que no se puede clasificar",
                 department_id=None,
@@ -115,14 +115,14 @@ class TestClassifierIntegration(BaseTestCase):
 
         finally:
             # Restaurar método original
-            classifier_service.is_model_available = original_available
+            classifier.is_model_available = original_available
 
     def test_claim_with_manual_department_selection(self):
         """Test que la selección manual de departamento funciona"""
         mantenimiento_id = self.classifier_departments["mantenimiento"]
 
         # Crear reclamo especificando departamento manualmente
-        claim, error = ClaimService.create_claim(
+        claim, error = Claim.create(
             user_id=self.user_id,
             detail="Este texto sugeriría sistemas pero seleccionamos mantenimiento",
             department_id=mantenimiento_id,  # Selección manual
@@ -136,7 +136,7 @@ class TestClassifierIntegration(BaseTestCase):
 
     def test_classifier_predictions_are_reasonable(self):
         """Test que las predicciones del clasificador retornan valores válidos"""
-        if not classifier_service.is_model_available():
+        if not classifier.is_model_available():
             self.skipTest("Modelo no entrenado. Ejecutar train_classifier.py primero")
 
         # Textos de prueba representativos
@@ -151,14 +151,14 @@ class TestClassifierIntegration(BaseTestCase):
 
         # Verificar que el clasificador retorna predicciones válidas (no None, no vacías)
         for text in test_texts:
-            predicted = classifier_service.classify(text)
+            predicted = classifier.classify(text)
             self.assertIsNotNone(predicted, f"'{text}' retornó None")
             self.assertIsInstance(predicted, str, f"'{text}' no retornó string")
             self.assertGreater(len(predicted), 0, f"'{text}' retornó string vacío")
 
     def test_classifier_confidence_is_valid(self):
         """Test que la confianza del clasificador está en rango válido"""
-        if not classifier_service.is_model_available():
+        if not classifier.is_model_available():
             self.skipTest("Modelo no entrenado. Ejecutar train_classifier.py primero")
 
         texts = [
@@ -168,13 +168,19 @@ class TestClassifierIntegration(BaseTestCase):
         ]
 
         for text in texts:
-            confidence = classifier_service.get_confidence(text)
-            self.assertGreaterEqual(confidence, 0.0, f"Confianza fuera de rango: {confidence}")
-            self.assertLessEqual(confidence, 1.0, f"Confianza fuera de rango: {confidence}")
+            confidence = classifier.get_confidence(text)
+            self.assertGreaterEqual(
+                confidence, 0.0, f"Confianza fuera de rango: {confidence}"
+            )
+            self.assertLessEqual(
+                confidence, 1.0, f"Confianza fuera de rango: {confidence}"
+            )
             self.assertGreater(
-                confidence, 0.0, "La confianza debería ser mayor a 0 para textos válidos"
+                confidence,
+                0.0,
+                "La confianza debería ser mayor a 0 para textos válidos",
             )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

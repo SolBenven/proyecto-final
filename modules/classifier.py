@@ -1,5 +1,5 @@
 """
-Servicio de clasificación automática de reclamos usando TF-IDF + Naive Bayes.
+Clasificador automático de reclamos usando TF-IDF + Naive Bayes.
 """
 
 from __future__ import annotations
@@ -10,8 +10,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 
 
-class ClassifierService:
-    """Servicio para clasificar automáticamente reclamos a departamentos"""
+class Classifier:
+    """Clasificador automático de reclamos a departamentos"""
 
     def __init__(self):
         self.vectorizer: TfidfVectorizer = TfidfVectorizer(
@@ -131,5 +131,5 @@ class ClassifierService:
         return os.path.exists(self.model_path) and os.path.exists(self.vectorizer_path)
 
 
-# Instancia global del servicio
-classifier_service = ClassifierService()
+# Instancia global del clasificador
+classifier = Classifier()

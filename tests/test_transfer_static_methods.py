@@ -1,5 +1,5 @@
 """
-Tests para TransferService - Fase 13: Derivación de Reclamos
+Tests para ClaimTransfer static methods - Fase 13: Derivación de Reclamos
 """
 
 import unittest
@@ -7,17 +7,15 @@ import time
 from tests.conftest import BaseTestCase
 
 from modules.config import db
-from modules.models.claim import ClaimStatus
+from modules.models.claim import Claim, ClaimStatus
 from modules.models.claim_transfer import ClaimTransfer
 from modules.models.department import Department
 from modules.models.user.admin_user import AdminRole, AdminUser
 from modules.models.user.end_user import Cloister, EndUser
-from modules.services.claim_service import ClaimService
-from modules.services.transfer_service import TransferService
 
 
-class TestTransfers(BaseTestCase):
-    """Tests para el servicio de transferencias"""
+class TestTransferStaticMethods(BaseTestCase):
+    """Tests para los métodos estáticos de ClaimTransfer"""
 
     def setUp(self):
         """Configura el entorno de prueba"""
@@ -66,7 +64,7 @@ class TestTransfers(BaseTestCase):
         self.department_head_id = dept_head.id
 
         # Crear reclamo de prueba
-        claim, _ = ClaimService.create_claim(
+        claim, _ = Claim.create(
             user_id=self.user_id,
             detail="Reclamo de prueba para transferencia",
             department_id=dept1_id,
@@ -75,16 +73,15 @@ class TestTransfers(BaseTestCase):
         self.claim_id = claim.id
         self.original_department_id = dept1_id
 
-
     # ============================================================
-    # Tests para transfer_claim
+    # Tests para ClaimTransfer.transfer
     # ============================================================
 
     def test_transfer_claim_success(self):
         """Transfiere exitosamente un reclamo a otro departamento"""
         to_dept_id = self.sample_departments["dept2_id"]
 
-        transfer, error = TransferService.transfer_claim(
+        transfer, error = ClaimTransfer.transfer(
             claim_id=self.claim_id,
             to_department_id=to_dept_id,
             transferred_by_id=self.technical_secretary_id,
@@ -100,14 +97,14 @@ class TestTransfers(BaseTestCase):
         """La transferencia actualiza el departamento del reclamo"""
         to_dept_id = self.sample_departments["dept2_id"]
 
-        transfer, error = TransferService.transfer_claim(
+        transfer, error = ClaimTransfer.transfer(
             claim_id=self.claim_id,
             to_department_id=to_dept_id,
             transferred_by_id=self.technical_secretary_id,
         )
 
         # Verificar que el departamento del reclamo cambió
-        claim = ClaimService.get_claim_by_id(self.claim_id)
+        claim = Claim.get_by_id(self.claim_id)
         self.assertEqual(claim.department_id, to_dept_id)
         self.assertNotEqual(claim.department_id, self.original_department_id)
 
@@ -115,14 +112,14 @@ class TestTransfers(BaseTestCase):
         """La transferencia crea un registro en el historial"""
         to_dept_id = self.sample_departments["dept2_id"]
 
-        TransferService.transfer_claim(
+        ClaimTransfer.transfer(
             claim_id=self.claim_id,
             to_department_id=to_dept_id,
             transferred_by_id=self.technical_secretary_id,
         )
 
         # Verificar historial de transferencias
-        history = TransferService.get_transfer_history(self.claim_id)
+        history = ClaimTransfer.get_history_for_claim(self.claim_id)
         self.assertEqual(len(history), 1)
         self.assertEqual(history[0].from_department_id, self.original_department_id)
         self.assertEqual(history[0].to_department_id, to_dept_id)
@@ -131,7 +128,7 @@ class TestTransfers(BaseTestCase):
         """Error al transferir reclamo inexistente"""
         to_dept_id = self.sample_departments["dept2_id"]
 
-        transfer, error = TransferService.transfer_claim(
+        transfer, error = ClaimTransfer.transfer(
             claim_id=99999,
             to_department_id=to_dept_id,
             transferred_by_id=self.technical_secretary_id,
@@ -142,7 +139,7 @@ class TestTransfers(BaseTestCase):
 
     def test_transfer_claim_invalid_department(self):
         """Error al transferir a departamento inexistente"""
-        transfer, error = TransferService.transfer_claim(
+        transfer, error = ClaimTransfer.transfer(
             claim_id=self.claim_id,
             to_department_id=99999,
             transferred_by_id=self.technical_secretary_id,
@@ -153,7 +150,7 @@ class TestTransfers(BaseTestCase):
 
     def test_transfer_claim_same_department(self):
         """Error al transferir al mismo departamento"""
-        transfer, error = TransferService.transfer_claim(
+        transfer, error = ClaimTransfer.transfer(
             claim_id=self.claim_id,
             to_department_id=self.original_department_id,
             transferred_by_id=self.technical_secretary_id,
@@ -166,7 +163,7 @@ class TestTransfers(BaseTestCase):
         """Transferencia sin motivo es válida"""
         to_dept_id = self.sample_departments["dept2_id"]
 
-        transfer, error = TransferService.transfer_claim(
+        transfer, error = ClaimTransfer.transfer(
             claim_id=self.claim_id,
             to_department_id=to_dept_id,
             transferred_by_id=self.technical_secretary_id,
@@ -177,12 +174,12 @@ class TestTransfers(BaseTestCase):
         self.assertIsNone(transfer.reason)
 
     # ============================================================
-    # Tests para get_transfer_history
+    # Tests para ClaimTransfer.get_history_for_claim
     # ============================================================
 
     def test_get_transfer_history_empty(self):
         """Historial vacío para reclamo sin transferencias"""
-        history = TransferService.get_transfer_history(self.claim_id)
+        history = ClaimTransfer.get_history_for_claim(self.claim_id)
 
         self.assertEqual(history, [])
 
@@ -192,7 +189,7 @@ class TestTransfers(BaseTestCase):
         st_id = self.sample_departments["st_id"]
 
         # Primera transferencia
-        TransferService.transfer_claim(
+        ClaimTransfer.transfer(
             claim_id=self.claim_id,
             to_department_id=dept2_id,
             transferred_by_id=self.technical_secretary_id,
@@ -203,14 +200,14 @@ class TestTransfers(BaseTestCase):
         time.sleep(0.01)
 
         # Segunda transferencia
-        TransferService.transfer_claim(
+        ClaimTransfer.transfer(
             claim_id=self.claim_id,
             to_department_id=st_id,
             transferred_by_id=self.technical_secretary_id,
             reason="Segunda derivación",
         )
 
-        history = TransferService.get_transfer_history(self.claim_id)
+        history = ClaimTransfer.get_history_for_claim(self.claim_id)
 
         self.assertEqual(len(history), 2)
         # Ordenado por fecha descendente (más reciente primero)
@@ -218,16 +215,14 @@ class TestTransfers(BaseTestCase):
         self.assertEqual(history[1].reason, "Primera derivación")
 
     # ============================================================
-    # Tests para get_available_departments_for_transfer
+    # Tests para ClaimTransfer.get_available_departments
     # ============================================================
 
     def test_get_available_departments_excludes_current(self):
         """Excluye el departamento actual de la lista"""
         current_dept_id = self.sample_departments["dept1_id"]
 
-        available = TransferService.get_available_departments_for_transfer(
-            current_dept_id
-        )
+        available = ClaimTransfer.get_available_departments(current_dept_id)
 
         # Verificar que el departamento actual no está en la lista
         available_ids = [d.id for d in available]
@@ -237,27 +232,25 @@ class TestTransfers(BaseTestCase):
         self.assertGreaterEqual(len(available), 2)  # dept2 y st al menos
 
     # ============================================================
-    # Tests para can_transfer
+    # Tests para ClaimTransfer.can_transfer
     # ============================================================
 
     def test_can_transfer_technical_secretary(self):
         """Secretario técnico puede transferir"""
         admin = db.session.get(AdminUser, self.technical_secretary_id)
-        claim = ClaimService.get_claim_by_id(self.claim_id)
 
-        can = TransferService.can_transfer(admin)
+        can = ClaimTransfer.can_transfer(admin)
 
         self.assertTrue(can)
 
     def test_can_transfer_department_head_cannot(self):
         """Jefe de departamento no puede transferir"""
         admin = db.session.get(AdminUser, self.department_head_id)
-        claim = ClaimService.get_claim_by_id(self.claim_id)
 
-        can = TransferService.can_transfer(admin)
+        can = ClaimTransfer.can_transfer(admin)
 
         self.assertFalse(can)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

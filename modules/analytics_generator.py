@@ -1,4 +1,4 @@
-"""Servicio de Analíticas y Estadísticas para el panel de administración."""
+"""Generador de Analíticas y Estadísticas para el panel de administración."""
 
 from __future__ import annotations
 
@@ -14,13 +14,12 @@ import matplotlib.pyplot as plt
 
 from modules.config import db
 from modules.models.claim import Claim, ClaimStatus
-from modules.services.claim_service import ClaimService
 from modules.utils.constants import SPANISH_STOPWORDS_SET
 from modules.utils.text import normalize_text
 
 
-class AnalyticsService:
-    """Servicio para calcular métricas y generar visualizaciones de reclamos."""
+class AnalyticsGenerator:
+    """Generador de métricas y visualizaciones de reclamos."""
 
     # Colores por estado para el gráfico circular
     STATUS_COLORS = {
@@ -53,14 +52,14 @@ class AnalyticsService:
             - status_counts: dict[str, int] con conteo por estado legible
             - status_percentages: dict[str, float] con porcentajes por estado
         """
-        # Reutilizar ClaimService.get_status_counts
-        raw_counts = ClaimService.get_status_counts(department_ids=department_ids)
+        # Reutilizar Claim.get_status_counts
+        raw_counts = Claim.get_status_counts(department_ids=department_ids)
 
         # Convertir a nombres legibles y filtrar estados con 0
         status_counts: dict[str, int] = {}
         for status, count in raw_counts.items():
             if count > 0:
-                label = AnalyticsService.STATUS_LABELS[status]
+                label = AnalyticsGenerator.STATUS_LABELS[status]
                 status_counts[label] = count
 
         total = sum(status_counts.values())
@@ -153,7 +152,7 @@ class AnalyticsService:
 
         fig, ax = plt.subplots(figsize=(8, 6))
         colors = [
-            AnalyticsService.STATUS_COLORS.get(k, "#6c757d")
+            AnalyticsGenerator.STATUS_COLORS.get(k, "#6c757d")
             for k in filtered_stats.keys()
         ]
 
@@ -239,11 +238,13 @@ class AnalyticsService:
             - wordcloud: nube de palabras en base64
             - keywords: dict de palabras frecuentes
         """
-        stats = AnalyticsService.get_claim_stats(department_ids)
-        keywords = AnalyticsService.get_keyword_frequencies(department_ids)
+        stats = AnalyticsGenerator.get_claim_stats(department_ids)
+        keywords = AnalyticsGenerator.get_keyword_frequencies(department_ids)
 
-        pie_chart = AnalyticsService.generate_pie_chart(stats.get("status_counts", {}))
-        wordcloud = AnalyticsService.generate_wordcloud(keywords)
+        pie_chart = AnalyticsGenerator.generate_pie_chart(
+            stats.get("status_counts", {})
+        )
+        wordcloud = AnalyticsGenerator.generate_wordcloud(keywords)
 
         return {
             "stats": stats,

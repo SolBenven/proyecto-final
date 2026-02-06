@@ -1,4 +1,4 @@
-"""Servicio para gestión de imágenes de reclamos"""
+"""Gestión de imágenes de reclamos"""
 
 import os
 import uuid
@@ -13,7 +13,7 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
 
-class ImageService:
+class ImageHandler:
     """Gestión de imágenes para reclamos"""
 
     @staticmethod
@@ -48,7 +48,7 @@ class ImageService:
         if file.filename == "":
             return False, "El archivo no tiene nombre"
 
-        if not ImageService.allowed_file(file.filename):
+        if not ImageHandler.allowed_file(file.filename):
             return (
                 False,
                 f"Tipo de archivo no permitido. Use: {', '.join(ALLOWED_EXTENSIONS)}",
@@ -76,7 +76,7 @@ class ImageService:
             Tuple (relative_path, error_message)
         """
         # Validar el archivo
-        is_valid, error = ImageService.validate_image(file)
+        is_valid, error = ImageHandler.validate_image(file)
         if not is_valid:
             return None, error
 
