@@ -1,4 +1,4 @@
-"""Servicio de Generación de Reportes para el panel de administración."""
+"""Generador de Reportes para el panel de administración."""
 
 from __future__ import annotations
 
@@ -8,11 +8,9 @@ from typing import TYPE_CHECKING
 
 from flask import render_template
 
-from modules.models.claim import Claim
-from modules.models.department import Department
-from modules.services.analytics_service import AnalyticsService
-from modules.services.claim_service import ClaimService
-from modules.services.department_service import DepartmentService
+from modules.claim import Claim
+from modules.department import Department
+from modules.analytics_generator import AnalyticsGenerator
 from modules.utils.constants import PDF_CSS
 
 if TYPE_CHECKING:
@@ -32,15 +30,15 @@ class Report(ABC):
 
     def _get_claims(self) -> list[Claim]:
         """Obtiene los reclamos para el reporte."""
-        return ClaimService.get_claims_by_department_ids(self.department_ids)
+        return Claim.get_by_departments(self.department_ids)
 
     def _get_departments(self) -> list[Department]:
         """Obtiene los departamentos para el reporte."""
-        return DepartmentService.get_departments_by_ids(self.department_ids)
+        return Department.get_by_ids(self.department_ids)
 
     def _get_stats(self) -> dict:
         """Obtiene las estadísticas para el reporte."""
-        return AnalyticsService.get_claim_stats(self.department_ids)
+        return AnalyticsGenerator.get_claim_stats(self.department_ids)
 
     @abstractmethod
     def generate(self) -> str | bytes | None:

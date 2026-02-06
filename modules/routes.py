@@ -18,18 +18,17 @@ from flask import (
 from flask_login import current_user, login_required, login_user, logout_user
 
 from modules.config import app, db, login_manager
-from modules.models.claim import Claim, ClaimStatus
-from modules.models.user import AdminUser, Cloister, EndUser, User
-from modules.models.user.admin_user import AdminRole
-from modules.services.admin_claim_service import AdminClaimService
-from modules.services.analytics_service import AnalyticsService
-from modules.services.claim_service import ClaimService
-from modules.services.department_service import DepartmentService
-from modules.services.image_service import ImageService
-from modules.services.notification_service import NotificationService
-from modules.services.similarity_service import similarity_service
-from modules.services.transfer_service import TransferService
-from modules.services.user_service import UserService
+from modules.admin_user import AdminRole, AdminUser
+from modules.claim import Claim, ClaimStatus
+from modules.claim_transfer import ClaimTransfer
+from modules.department import Department
+from modules.end_user import Cloister, EndUser
+from modules.user import User
+from modules.user_notification import UserNotification
+from modules.admin_helper import AdminHelper
+from modules.analytics_generator import AnalyticsGenerator
+from modules.image_handler import ImageHandler
+from modules.similarity import similarity_finder
 from modules.utils.decorators import (
     admin_required,
     admin_role_required,
@@ -40,13 +39,13 @@ from modules.utils.decorators import (
 
 @login_manager.user_loader
 def load_user(user_id):
-    return UserService.get_by_id(int(user_id))
+    return User.get_by_id(int(user_id))
 
 
 @app.context_processor
 def inject_notifications():
     if current_user.is_authenticated:
-        unread_count = NotificationService.get_unread_count(current_user.id)
+        unread_count = UserNotification.get_unread_count(current_user.id)
         return {"unread_notifications_count": unread_count}
     return {"unread_notifications_count": 0}
 
@@ -87,7 +86,7 @@ def register_post():
     except ValueError:
         flash("Claustro Inválido", "error")
         return render_template("auth/register.html")
-    user, error = UserService.register_end_user(
+    user, error = EndUser.register(
         first_name=first_name,
         last_name=last_name,
         email=email,
@@ -111,7 +110,7 @@ def login():
 def login_post():
     username = request.form["username"]
     password = request.form["password"]
-    user = UserService.authenticate_end_user(username, password)
+    user = EndUser.authenticate(username, password)
     if user:
         login_user(user)
         flash("Has iniciado sesión correctamente", "success")
@@ -140,7 +139,7 @@ def admin_login():
 def admin_login_post():
     username = request.form["username"]
     password = request.form["password"]
-    user = UserService.authenticate_admin_user(username, password)
+    user = AdminUser.authenticate(username, password)
     if user:
         login_user(user)
         flash("Has iniciado sesión correctamente", "success")
@@ -154,10 +153,10 @@ def admin_login_post():
 @admin_required
 def admin_dashboard():
     admin_user = cast(AdminUser, current_user)
-    departments = DepartmentService.get_departments_for_admin(admin_user)
+    departments = Department.get_for_admin(admin_user)
     department_ids = [d.id for d in departments]
-    dashboard_counts = ClaimService.get_dashboard_counts(department_ids=department_ids)
-    per_dept_counts = ClaimService.get_department_dashboard_counts(department_ids)
+    dashboard_counts = Claim.get_dashboard_counts(department_ids=department_ids)
+    per_dept_counts = Claim.get_department_dashboard_counts(department_ids)
     dept_stats = [
         {
             "department": dept,
@@ -187,7 +186,7 @@ def admin_help():
 @admin_required
 def admin_claims_list():
     admin_user = cast(AdminUser, current_user)
-    claims = AdminClaimService.get_claims_for_admin(admin_user)
+    claims = AdminHelper.get_claims_for_admin(admin_user)
     supporters_ids_by_claim = {
         claim.id: [supporter.user_id for supporter in claim.supporters]
         for claim in claims
@@ -203,18 +202,18 @@ def admin_claims_list():
 @admin_required
 def admin_claim_detail(claim_id: int):
     admin_user = cast(AdminUser, current_user)
-    claim = AdminClaimService.get_claim_for_admin(admin_user, claim_id)
+    claim = AdminHelper.get_claim_for_admin(admin_user, claim_id)
     if claim is None:
         flash("Reclamo no encontrado o sin permisos para verlo", "error")
         return redirect(url_for("admin.claims_list"))
     supporters_ids = [supporter.user_id for supporter in claim.supporters]
     available_departments = []
-    can_transfer = TransferService.can_transfer(admin_user)
+    can_transfer = ClaimTransfer.can_transfer(admin_user)
     if can_transfer:
-        available_departments = TransferService.get_available_departments_for_transfer(
+        available_departments = ClaimTransfer.get_available_departments(
             claim.department_id
         )
-    transfers = TransferService.get_transfer_history(claim.id)
+    transfers = ClaimTransfer.get_history_for_claim(claim.id)
     return render_template(
         "admin/claim_detail.html",
         claim=claim,
@@ -229,10 +228,10 @@ def admin_claim_detail(claim_id: int):
 @admin_role_required(AdminRole.DEPARTMENT_HEAD, AdminRole.TECHNICAL_SECRETARY)
 def admin_analytics():
     admin_user = cast(AdminUser, current_user)
-    departments = DepartmentService.get_departments_for_admin(admin_user)
+    departments = Department.get_for_admin(admin_user)
     department_ids = [d.id for d in departments]
 
-    analytics_data = AnalyticsService.get_full_analytics(department_ids)
+    analytics_data = AnalyticsGenerator.get_full_analytics(department_ids)
 
     return render_template(
         "admin/analytics.html",
@@ -249,7 +248,7 @@ def admin_analytics():
 @admin_role_required(AdminRole.DEPARTMENT_HEAD, AdminRole.TECHNICAL_SECRETARY)
 def admin_reports():
     admin_user = cast(AdminUser, current_user)
-    departments = DepartmentService.get_departments_for_admin(admin_user)
+    departments = Department.get_for_admin(admin_user)
 
     return render_template(
         "admin/reports.html",
@@ -261,10 +260,10 @@ def admin_reports():
 @app.route("/admin/reports/download", endpoint="admin.download_report")
 @admin_role_required(AdminRole.DEPARTMENT_HEAD, AdminRole.TECHNICAL_SECRETARY)
 def admin_download_report():
-    from modules.services.report_service import create_report
+    from modules.report_generator import create_report
 
     admin_user = cast(AdminUser, current_user)
-    departments = DepartmentService.get_departments_for_admin(admin_user)
+    departments = Department.get_for_admin(admin_user)
     department_ids = [d.id for d in departments]
 
     report_format = request.args.get("format", "html")
@@ -297,7 +296,7 @@ def admin_download_report():
 def admin_create_transfer(claim_id: int):
     admin_user = cast(AdminUser, current_user)
 
-    claim = AdminClaimService.get_claim_for_admin(admin_user, claim_id)
+    claim = AdminHelper.get_claim_for_admin(admin_user, claim_id)
     if claim is None:
         flash("Reclamo no encontrado", "error")
         return redirect(url_for("admin.claims_list"))
@@ -309,7 +308,7 @@ def admin_create_transfer(claim_id: int):
         flash("Debe seleccionar un departamento destino", "error")
         return redirect(url_for("admin.claim_detail", claim_id=claim_id))
 
-    transfer, error = TransferService.transfer_claim(
+    transfer, error = ClaimTransfer.transfer(
         claim_id=claim_id,
         to_department_id=to_department_id,
         transferred_by_id=admin_user.id,
@@ -333,12 +332,12 @@ def admin_create_transfer(claim_id: int):
 def admin_get_transfers(claim_id: int):
     admin_user = cast(AdminUser, current_user)
 
-    claim = AdminClaimService.get_claim_for_admin(admin_user, claim_id)
+    claim = AdminHelper.get_claim_for_admin(admin_user, claim_id)
     if claim is None:
         flash("Reclamo no encontrado", "error")
         return redirect(url_for("admin.claims_list"))
 
-    transfers = TransferService.get_transfer_history(claim_id)
+    transfers = ClaimTransfer.get_history_for_claim(claim_id)
 
     return render_template(
         "admin/transfers.html",
@@ -359,11 +358,11 @@ def claims_list():
         except KeyError:
             flash("Estado de reclamo no válido", "error")
 
-    claims = ClaimService.get_all_claims(
+    claims = Claim.get_all_with_filters(
         department_filter=department_filter, status_filter=status_enum
     )
 
-    departments = DepartmentService.get_all_departments()
+    departments = Department.get_all()
 
     return render_template(
         "claims/list.html",
@@ -377,7 +376,7 @@ def claims_list():
 @app.route("/claims/new", methods=["GET"], endpoint="claims.new")
 @login_required
 def claims_new():
-    departments = DepartmentService.get_all_departments()
+    departments = Department.get_all()
     return render_template("claims/create.html", departments=departments)
 
 
@@ -395,13 +394,13 @@ def claims_preview():
     if "image" in request.files:
         file = request.files["image"]
         if file and file.filename != "":
-            saved_path, error = ImageService.save_claim_image(file)
+            saved_path, error = ImageHandler.save_claim_image(file)
             if error:
                 flash(f"Error con la imagen: {error}", "warning")
             else:
                 image_path = saved_path
 
-    similar_claims = similarity_service.find_similar_claims(text=detail)
+    similar_claims = similarity_finder.find_similar_claims(text=detail)
 
     session["pending_claim"] = {
         "detail": detail,
@@ -409,9 +408,7 @@ def claims_preview():
         "image_path": image_path,
     }
 
-    department = (
-        DepartmentService.get_department_by_id(department_id) if department_id else None
-    )
+    department = Department.get_by_id(department_id) if department_id else None
 
     return render_template(
         "claims/preview.html",
@@ -450,13 +447,13 @@ def claims_create():
         if "image" in request.files:
             file = request.files["image"]
             if file and file.filename != "":
-                saved_path, error = ImageService.save_claim_image(file)
+                saved_path, error = ImageHandler.save_claim_image(file)
                 if error:
                     flash(f"Error con la imagen: {error}", "warning")
                 else:
                     image_path = saved_path
 
-    claim, error = ClaimService.create_claim(
+    claim, error = Claim.create(
         user_id=current_user.id,
         detail=detail,
         department_id=department_id,
@@ -465,7 +462,7 @@ def claims_create():
 
     if error or not claim:
         if image_path:
-            ImageService.delete_claim_image(image_path)
+            ImageHandler.delete_claim_image(image_path)
 
         error = error or "Error al crear el reclamo"
         flash(error, "error")
@@ -477,7 +474,7 @@ def claims_create():
 
 @app.route("/claims/<int:id>", methods=["GET"], endpoint="claims.detail")
 def claims_detail(id: int):
-    claim = ClaimService.get_claim_by_id(id)
+    claim = Claim.get_by_id(id)
 
     if not claim:
         flash("Reclamo no encontrado", "error")
@@ -485,7 +482,7 @@ def claims_detail(id: int):
 
     is_supporter = False
     if current_user.is_authenticated:
-        is_supporter = ClaimService.is_user_supporter(id, current_user.id)
+        is_supporter = Claim.is_user_supporter(id, current_user.id)
 
     return render_template("claims/detail.html", claim=claim, is_supporter=is_supporter)
 
@@ -495,7 +492,7 @@ def claims_detail(id: int):
 )
 @login_required
 def claims_add_supporter(id: int):
-    success, error = ClaimService.add_supporter(claim_id=id, user_id=current_user.id)
+    success, error = Claim.add_supporter(claim_id=id, user_id=current_user.id)
 
     if error:
         flash(error, "error")
@@ -512,7 +509,7 @@ def claims_add_supporter(id: int):
 )
 @login_required
 def claims_remove_supporter(id: int):
-    success, error = ClaimService.remove_supporter(claim_id=id, user_id=current_user.id)
+    success, error = Claim.remove_supporter(claim_id=id, user_id=current_user.id)
 
     if error:
         flash(error, "error")
@@ -525,7 +522,7 @@ def claims_remove_supporter(id: int):
 @app.route("/claims/<int:id>/status", methods=["POST"], endpoint="claims.update_status")
 @admin_required
 def claims_update_status(id: int):
-    claim = ClaimService.get_claim_by_id(id)
+    claim = Claim.get_by_id(id)
     if not claim:
         flash("Reclamo no encontrado", "error")
         return redirect(url_for("claims.list"))
@@ -546,7 +543,7 @@ def claims_update_status(id: int):
         flash("Estado no válido", "error")
         return redirect(url_for("claims.detail", id=id))
 
-    success, error = AdminClaimService.update_claim_status_for_admin(
+    success, error = AdminHelper.update_claim_status(
         current_user, id, new_status  # type: ignore
     )
 
@@ -561,7 +558,7 @@ def claims_update_status(id: int):
 @app.route("/users/me/claims", methods=["GET"], endpoint="users.my_claims")
 @end_user_required
 def users_my_claims():
-    claims = ClaimService.get_user_claims(current_user.id)
+    claims = Claim.get_by_user(current_user.id)
     return render_template("users/my_claims.html", claims=claims)
 
 
@@ -570,16 +567,14 @@ def users_my_claims():
 )
 @end_user_required
 def users_my_supported_claims():
-    claims = ClaimService.get_user_supported_claims(current_user.id)
+    claims = Claim.get_supported_by_user(current_user.id)
     return render_template("users/my_supported_claims.html", claims=claims)
 
 
 @app.route("/users/me/notifications", methods=["GET"], endpoint="users.notifications")
 @end_user_required
 def users_notifications():
-    pending_notifications = NotificationService.get_pending_notifications(
-        current_user.id
-    )
+    pending_notifications = UserNotification.get_pending_for_user(current_user.id)
     return render_template(
         "users/notifications.html", notifications=pending_notifications
     )
@@ -592,7 +587,7 @@ def users_notifications():
 )
 @end_user_required
 def users_mark_notification_read(notification_id):
-    success, error = NotificationService.mark_notification_as_read(
+    success, error = UserNotification.mark_notification_as_read(
         notification_id, current_user.id
     )
 
@@ -611,6 +606,6 @@ def users_mark_notification_read(notification_id):
 )
 @end_user_required
 def users_mark_all_notifications_read():
-    count = NotificationService.mark_all_as_read(current_user.id)
+    count = UserNotification.mark_all_as_read_for_user(current_user.id)
     flash(f"Se marcaron {count} notificaciones como leídas", "success")
     return redirect(request.referrer or url_for("users.notifications"))

@@ -5,7 +5,7 @@ Tests para el servicio de clasificación automática de reclamos.
 import unittest
 import os
 import tempfile
-from modules.services.classifier_service import ClassifierService
+from modules.classifier import Classifier
 
 
 class TestClassifierBase(unittest.TestCase):
@@ -14,12 +14,16 @@ class TestClassifierBase(unittest.TestCase):
     def setUp(self):
         """Configuración antes de cada test"""
         # Crear instancia temporal con paths únicos para tests
-        self.classifier = ClassifierService()
+        self.classifier = Classifier()
 
         # Usar directorio temporal para los modelos de prueba
         self.temp_dir = tempfile.mkdtemp()
-        self.classifier.model_path = os.path.join(self.temp_dir, "test_classifier.joblib")
-        self.classifier.vectorizer_path = os.path.join(self.temp_dir, "test_vectorizer.joblib")
+        self.classifier.model_path = os.path.join(
+            self.temp_dir, "test_classifier.joblib"
+        )
+        self.classifier.vectorizer_path = os.path.join(
+            self.temp_dir, "test_vectorizer.joblib"
+        )
 
         # Datos de entrenamiento de ejemplo
         self.sample_training_data = {
@@ -63,7 +67,9 @@ class TestClassifierTraining(TestClassifierBase):
 
     def test_train_with_valid_data(self):
         """Test entrenamiento con datos válidos"""
-        self.classifier.train(self.sample_training_data["texts"], self.sample_training_data["labels"])
+        self.classifier.train(
+            self.sample_training_data["texts"], self.sample_training_data["labels"]
+        )
 
         self.assertTrue(self.classifier.is_trained)
         self.assertTrue(os.path.exists(self.classifier.model_path))
@@ -84,10 +90,12 @@ class TestClassifierTraining(TestClassifierBase):
 
     def test_model_persists_after_training(self):
         """Test que el modelo se guarda correctamente"""
-        self.classifier.train(self.sample_training_data["texts"], self.sample_training_data["labels"])
+        self.classifier.train(
+            self.sample_training_data["texts"], self.sample_training_data["labels"]
+        )
 
         # Crear nueva instancia con los mismos paths
-        new_classifier = ClassifierService()
+        new_classifier = Classifier()
         new_classifier.model_path = self.classifier.model_path
         new_classifier.vectorizer_path = self.classifier.vectorizer_path
 
@@ -102,7 +110,9 @@ class TestClassifierPrediction(TestClassifierBase):
     def setUp(self):
         """Configuración con clasificador ya entrenado"""
         super().setUp()
-        self.classifier.train(self.sample_training_data["texts"], self.sample_training_data["labels"])
+        self.classifier.train(
+            self.sample_training_data["texts"], self.sample_training_data["labels"]
+        )
 
     def test_classify_mantenimiento(self):
         """Test clasificación de reclamo de mantenimiento"""
@@ -134,10 +144,12 @@ class TestClassifierPrediction(TestClassifierBase):
     def test_classify_without_training(self):
         """Test clasificación sin modelo entrenado"""
         # Crear nuevo clasificador sin entrenar
-        new_classifier = ClassifierService()
+        new_classifier = Classifier()
         # Usar paths de temp para evitar cargar modelo existente
         new_classifier.model_path = os.path.join(self.temp_dir, "nonexistent.joblib")
-        new_classifier.vectorizer_path = os.path.join(self.temp_dir, "nonexistent_vec.joblib")
+        new_classifier.vectorizer_path = os.path.join(
+            self.temp_dir, "nonexistent_vec.joblib"
+        )
         with self.assertRaisesRegex(ValueError, "no está entrenado"):
             new_classifier.classify("Algún texto")
 
@@ -148,13 +160,13 @@ class TestClassifierConfidence(TestClassifierBase):
     def setUp(self):
         """Configuración con clasificador ya entrenado"""
         super().setUp()
-        self.classifier.train(self.sample_training_data["texts"], self.sample_training_data["labels"])
+        self.classifier.train(
+            self.sample_training_data["texts"], self.sample_training_data["labels"]
+        )
 
     def test_get_confidence_returns_valid_probability(self):
         """Test que la confianza está entre 0 y 1"""
-        confidence = self.classifier.get_confidence(
-            "El aire acondicionado no funciona"
-        )
+        confidence = self.classifier.get_confidence("El aire acondicionado no funciona")
         self.assertGreaterEqual(confidence, 0.0)
         self.assertLessEqual(confidence, 1.0)
 
@@ -166,10 +178,12 @@ class TestClassifierConfidence(TestClassifierBase):
     def test_get_confidence_without_training(self):
         """Test confianza sin modelo entrenado"""
         # Crear nuevo clasificador sin entrenar
-        new_classifier = ClassifierService()
+        new_classifier = Classifier()
         # Usar paths de temp para evitar cargar modelo existente
         new_classifier.model_path = os.path.join(self.temp_dir, "nonexistent.joblib")
-        new_classifier.vectorizer_path = os.path.join(self.temp_dir, "nonexistent_vec.joblib")
+        new_classifier.vectorizer_path = os.path.join(
+            self.temp_dir, "nonexistent_vec.joblib"
+        )
         confidence = new_classifier.get_confidence("Algún texto")
         self.assertEqual(confidence, 0.0)
 
@@ -183,7 +197,9 @@ class TestClassifierAvailability(TestClassifierBase):
 
     def test_is_model_available_returns_true_after_training(self):
         """Test que retorna True después de entrenar"""
-        self.classifier.train(self.sample_training_data["texts"], self.sample_training_data["labels"])
+        self.classifier.train(
+            self.sample_training_data["texts"], self.sample_training_data["labels"]
+        )
         self.assertTrue(self.classifier.is_model_available())
 
 
@@ -193,10 +209,12 @@ class TestClassifierIntegration(TestClassifierBase):
     def test_train_save_load_predict_workflow(self):
         """Test del flujo completo: entrenar, guardar, cargar y predecir"""
         # Entrenar
-        self.classifier.train(self.sample_training_data["texts"], self.sample_training_data["labels"])
+        self.classifier.train(
+            self.sample_training_data["texts"], self.sample_training_data["labels"]
+        )
 
         # Crear nueva instancia y cargar modelo
-        new_classifier = ClassifierService()
+        new_classifier = Classifier()
         new_classifier.model_path = self.classifier.model_path
         new_classifier.vectorizer_path = self.classifier.vectorizer_path
         new_classifier._load_model()
@@ -207,7 +225,9 @@ class TestClassifierIntegration(TestClassifierBase):
 
     def test_multiple_predictions_are_consistent(self):
         """Test que predicciones múltiples del mismo texto son consistentes"""
-        self.classifier.train(self.sample_training_data["texts"], self.sample_training_data["labels"])
+        self.classifier.train(
+            self.sample_training_data["texts"], self.sample_training_data["labels"]
+        )
 
         text = "El aire acondicionado hace ruido"
         result1 = self.classifier.classify(text)
@@ -218,5 +238,5 @@ class TestClassifierIntegration(TestClassifierBase):
         self.assertEqual(result2, result3)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

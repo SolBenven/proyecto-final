@@ -1,19 +1,50 @@
 from __future__ import annotations
-
+from datetime import datetime as Datetime
 from typing import TYPE_CHECKING
 
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from modules.config import db
-from modules.models.department import Department
 
 if TYPE_CHECKING:
-    from modules.models.user.admin_user import AdminUser
+    from modules.claim import Claim
+    from modules.admin_user import AdminUser
 
 
-class DepartmentService:
-    """Servicio para gestionar departamentos"""
+class Department(db.Model):
+    """Departamento que gestiona reclamos"""
+
+    __tablename__ = "department"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(unique=True, nullable=False)  # Nombre interno
+    display_name: Mapped[str] = mapped_column(nullable=False)  # Nombre para mostrar
+    is_technical_secretariat: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[Datetime] = mapped_column(default=Datetime.now)
+
+    # Relaciones
+    claims: Mapped[list["Claim"]] = relationship(  # noqa: F821
+        "Claim", back_populates="department"
+    )
+    admin_users: Mapped[list["AdminUser"]] = relationship(  # noqa: F821
+        "AdminUser", back_populates="department"
+    )
+
+    def __init__(
+        self,
+        name: str,
+        display_name: str,
+        is_technical_secretariat: bool = False,
+    ):
+        self.name = name
+        self.display_name = display_name
+        self.is_technical_secretariat = is_technical_secretariat
+
+    def __repr__(self):
+        return f"<Department {self.name}>"
 
     @staticmethod
-    def get_all_departments() -> list[Department]:
+    def get_all() -> list[Department]:
         """
         Obtiene todos los departamentos ordenados por nombre.
 
@@ -23,7 +54,7 @@ class DepartmentService:
         return db.session.query(Department).order_by(Department.display_name).all()
 
     @staticmethod
-    def get_department_by_id(department_id: int) -> Department | None:
+    def get_by_id(department_id: int) -> Department | None:
         """
         Obtiene un departamento por su ID.
 
@@ -50,7 +81,7 @@ class DepartmentService:
         )
 
     @staticmethod
-    def get_department_by_name(name: str) -> Department | None:
+    def get_by_name(name: str) -> Department | None:
         """
         Obtiene un departamento por su nombre interno.
 
@@ -63,23 +94,23 @@ class DepartmentService:
         return db.session.query(Department).filter_by(name=name).first()
 
     @staticmethod
-    def get_departments_for_admin(admin_user: "AdminUser") -> list[Department]:
+    def get_for_admin(admin_user: "AdminUser") -> list[Department]:
         """Devuelve los departamentos visibles para un AdminUser.
 
         - Secretaría técnica: todos los departamentos
         - Otros roles: solo su departamento (si está asignado)
         """
         if admin_user.is_technical_secretary:
-            return DepartmentService.get_all_departments()
+            return Department.get_all()
 
         if admin_user.department_id is None:
             return []
 
-        department = DepartmentService.get_department_by_id(admin_user.department_id)
+        department = Department.get_by_id(admin_user.department_id)
         return [department] if department else []
 
     @staticmethod
-    def get_departments_by_ids(department_ids: list[int]) -> list[Department]:
+    def get_by_ids(department_ids: list[int]) -> list[Department]:
         """
         Obtiene departamentos por lista de IDs.
 

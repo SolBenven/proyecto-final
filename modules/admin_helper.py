@@ -1,27 +1,18 @@
+"""Helper para gestión de reclamos desde el panel de administración."""
+
 from __future__ import annotations
 
 from sqlalchemy.orm import joinedload, selectinload
 
 from modules.config import db
-from modules.models.claim import Claim, ClaimStatus
-from modules.models.claim_supporter import ClaimSupporter
-from modules.models.user.admin_user import AdminUser
-from modules.services.claim_service import ClaimService
-from modules.services.department_service import DepartmentService
+from modules.claim import Claim, ClaimStatus
+from modules.claim_supporter import ClaimSupporter
+from modules.department import Department
+from modules.admin_user import AdminUser
 
 
-class AdminClaimService:
-    """Servicio para gestión de reclamos desde el panel de administración."""
-
-    @staticmethod
-    def get_claim_supporters_ids(claim_id: int) -> list[int]:
-        rows = (
-            db.session.query(ClaimSupporter.user_id)
-            .filter_by(claim_id=claim_id)
-            .order_by(ClaimSupporter.created_at.asc())
-            .all()
-        )
-        return [int(user_id) for (user_id,) in rows]
+class AdminHelper:
+    """Helper para gestión de reclamos con permisos de administración."""
 
     @staticmethod
     def get_claims_for_admin(
@@ -32,7 +23,7 @@ class AdminClaimService:
         - Secretaría técnica: todos los departamentos (con filtro opcional department_id)
         - Jefe de departamento: solo su departamento
         """
-        visible_departments = DepartmentService.get_departments_for_admin(admin_user)
+        visible_departments = Department.get_for_admin(admin_user)
         visible_department_ids = [d.id for d in visible_departments]
 
         if not visible_department_ids:
@@ -70,7 +61,7 @@ class AdminClaimService:
         return None
 
     @staticmethod
-    def update_claim_status_for_admin(
+    def update_claim_status(
         admin_user: AdminUser, claim_id: int, new_status: ClaimStatus
     ) -> tuple[bool, str | None]:
         claim = db.session.get(Claim, claim_id)
@@ -83,4 +74,4 @@ class AdminClaimService:
         ):
             return False, "No tienes permiso para gestionar este reclamo"
 
-        return ClaimService.update_claim_status(claim_id, new_status, admin_user.id)
+        return Claim.update_status(claim_id, new_status, admin_user.id)

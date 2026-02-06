@@ -6,8 +6,10 @@ import unittest
 from tests.conftest import BaseTestCase
 
 from modules.config import db
-from modules.models import Department, EndUser, Claim, Cloister, ClaimStatus
-from modules.services.similarity_service import similarity_service
+from modules.claim import Claim, ClaimStatus
+from modules.department import Department
+from modules.end_user import Cloister, EndUser
+from modules.similarity import similarity_finder
 
 
 class TestFindSimilarClaims(BaseTestCase):
@@ -82,7 +84,7 @@ class TestFindSimilarClaims(BaseTestCase):
         )
 
         # Buscar similares a "aire acondicionado"
-        similar = similarity_service.find_similar_claims(
+        similar = similarity_finder.find_similar_claims(
             text="El aire acondicionado del aula no funciona bien",
             department_id=mantenimiento.id,
             threshold=0.2,  # Lower threshold to catch similar claims
@@ -93,7 +95,9 @@ class TestFindSimilarClaims(BaseTestCase):
             len(similar), 2
         )  # Debe encontrar los 2 reclamos de aire acondicionado
         # Verificar que retorna tuplas (claim, score)
-        self.assertTrue(all(isinstance(item, tuple) and len(item) == 2 for item in similar))
+        self.assertTrue(
+            all(isinstance(item, tuple) and len(item) == 2 for item in similar)
+        )
         # Verificar que los scores están en orden descendente
         scores = [score for _, score in similar]
         self.assertEqual(scores, sorted(scores, reverse=True))
@@ -105,7 +109,7 @@ class TestFindSimilarClaims(BaseTestCase):
         )
 
         # Buscar similares a "proyector" (hay uno RESOLVED)
-        similar = similarity_service.find_similar_claims(
+        similar = similarity_finder.find_similar_claims(
             text="El proyector del aula tiene problemas",
             department_id=mantenimiento.id,
             threshold=0.1,
@@ -126,7 +130,7 @@ class TestFindSimilarClaims(BaseTestCase):
         )
 
         # Buscar en departamento vacío
-        similar = similarity_service.find_similar_claims(
+        similar = similarity_finder.find_similar_claims(
             text="El aire acondicionado no funciona",
             department_id=infraestructura.id,
             threshold=0.3,
@@ -142,7 +146,7 @@ class TestFindSimilarClaims(BaseTestCase):
         )
 
         # Buscar con umbral alto
-        similar_high = similarity_service.find_similar_claims(
+        similar_high = similarity_finder.find_similar_claims(
             text="El aire acondicionado del aula no funciona",
             department_id=mantenimiento.id,
             threshold=0.7,  # Umbral alto
@@ -150,7 +154,7 @@ class TestFindSimilarClaims(BaseTestCase):
         )
 
         # Buscar con umbral bajo
-        similar_low = similarity_service.find_similar_claims(
+        similar_low = similarity_finder.find_similar_claims(
             text="El aire acondicionado del aula no funciona",
             department_id=mantenimiento.id,
             threshold=0.1,  # Umbral bajo
@@ -167,7 +171,7 @@ class TestFindSimilarClaims(BaseTestCase):
         )
 
         # Buscar con límite de 1
-        similar = similarity_service.find_similar_claims(
+        similar = similarity_finder.find_similar_claims(
             text="El aire acondicionado del aula no funciona",
             department_id=mantenimiento.id,
             threshold=0.1,
@@ -182,7 +186,7 @@ class TestFindSimilarClaims(BaseTestCase):
             db.session.query(Department).filter_by(name="mantenimiento").first()
         )
 
-        similar = similarity_service.find_similar_claims(
+        similar = similarity_finder.find_similar_claims(
             text="",
             department_id=mantenimiento.id,
             threshold=0.3,
@@ -198,7 +202,7 @@ class TestFindSimilarClaims(BaseTestCase):
         )
         first_claim_id = self.claim_ids[0]
 
-        similar = similarity_service.find_similar_claims(
+        similar = similarity_finder.find_similar_claims(
             text="El aire acondicionado del aula no funciona",
             department_id=mantenimiento.id,
             threshold=0.3,
@@ -266,7 +270,7 @@ class TestSimilarityScoring(BaseTestCase):
             db.session.query(Department).filter_by(name="mantenimiento").first()
         )
 
-        similar = similarity_service.find_similar_claims(
+        similar = similarity_finder.find_similar_claims(
             text="El aire acondicionado del aula no funciona",
             department_id=mantenimiento.id,
             threshold=0.0,  # Sin filtro
@@ -284,7 +288,7 @@ class TestSimilarityScoring(BaseTestCase):
         )
 
         # Texto muy similar al primero
-        similar = similarity_service.find_similar_claims(
+        similar = similarity_finder.find_similar_claims(
             text="El aire acondicionado del aula 301 no funciona bien",
             department_id=mantenimiento.id,
             threshold=0.0,
@@ -298,5 +302,5 @@ class TestSimilarityScoring(BaseTestCase):
             self.assertGreaterEqual(first_score, last_score)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

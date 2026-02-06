@@ -1,24 +1,90 @@
 from __future__ import annotations
 
+from datetime import datetime as Datetime
+from enum import Enum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import func
+from sqlalchemy import ForeignKey, func
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from modules.config import db
-from modules.models.claim import Claim, ClaimStatus
-from modules.models.claim_status_history import ClaimStatusHistory
-from modules.models.claim_supporter import ClaimSupporter
-from modules.models.user_notification import UserNotification
-from modules.services.department_service import DepartmentService
-from modules.services.classifier_service import classifier_service
 
 if TYPE_CHECKING:
-    from modules.models.user.end_user import EndUser
+    from modules.claim_status_history import ClaimStatusHistory
+    from modules.claim_supporter import ClaimSupporter
+    from modules.claim_transfer import ClaimTransfer
+    from modules.department import Department
+    from modules.end_user import EndUser
 
 
-class ClaimService:
-    """Servicio para gestionar reclamos"""
+class ClaimStatus(Enum):
+    """Estado de un reclamo"""
+
+    INVALID = "Inválido"
+    PENDING = "Pendiente"
+    IN_PROGRESS = "En proceso"
+    RESOLVED = "Resuelto"
+
+
+class Claim(db.Model):
+    """Reclamo creado por un usuario final"""
+
+    __tablename__ = "claim"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    detail: Mapped[str] = mapped_column(nullable=False)
+    status: Mapped[ClaimStatus] = mapped_column(default=ClaimStatus.PENDING)
+    image_path: Mapped[str | None] = mapped_column(nullable=True)
+    created_at: Mapped[Datetime] = mapped_column(default=Datetime.now)
+    updated_at: Mapped[Datetime] = mapped_column(
+        default=Datetime.now, onupdate=Datetime.now
+    )
+
+    # Foreign Keys
+    department_id: Mapped[int] = mapped_column(
+        ForeignKey("department.id"), nullable=False
+    )
+    creator_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
+
+    # Relaciones
+    department: Mapped["Department"] = relationship(  # noqa: F821
+        "Department", back_populates="claims"
+    )
+    creator: Mapped["EndUser"] = relationship(  # noqa: F821
+        "EndUser", back_populates="created_claims"
+    )
+    supporters: Mapped[list["ClaimSupporter"]] = relationship(  # noqa: F821
+        "ClaimSupporter", back_populates="claim", cascade="all, delete-orphan"
+    )
+    status_history: Mapped[list["ClaimStatusHistory"]] = relationship(  # noqa: F821
+        "ClaimStatusHistory", back_populates="claim", cascade="all, delete-orphan"
+    )
+    transfers: Mapped[list["ClaimTransfer"]] = relationship(  # noqa: F821
+        "ClaimTransfer", back_populates="claim", cascade="all, delete-orphan"
+    )
+
+    def __init__(
+        self,
+        detail: str,
+        department_id: int,
+        creator_id: int,
+        image_path: str | None = None,
+    ):
+        self.detail = detail
+        self.department_id = department_id
+        self.creator_id = creator_id
+        self.image_path = image_path
+
+    @property
+    def supporters_count(self) -> int:
+        """Retorna el número de adherentes"""
+        return len(self.supporters)
+
+    def __repr__(self):
+        return f"<Claim {self.id} - {self.status.value}>"
+
+    # ── Helpers privados ─────────────────────────────────────────────
 
     @staticmethod
     def _get_technical_secretariat_id() -> int | None:
@@ -28,11 +94,13 @@ class ClaimService:
         Returns:
             ID de la Secretaría Técnica o None si no existe
         """
-        technical_secretariat = DepartmentService.get_technical_secretariat()
+        from modules.department import Department
+
+        technical_secretariat = Department.get_technical_secretariat()
         return technical_secretariat.id if technical_secretariat else None
 
     @staticmethod
-    def _classify_claim_department(detail: str) -> int | None:
+    def _classify_department(detail: str) -> int | None:
         """
         Clasifica automáticamente un reclamo y retorna el ID del departamento.
 
@@ -42,16 +110,17 @@ class ClaimService:
         Returns:
             ID del departamento predicho o None si falla la clasificación
         """
-        if not classifier_service.is_model_available():
+        from modules.classifier import classifier
+        from modules.department import Department
+
+        if not classifier.is_model_available():
             return None
 
         try:
-            predicted_name = classifier_service.classify(detail)
-            predicted_department = DepartmentService.get_department_by_name(
-                predicted_name
-            )
+            predicted_name = classifier.classify(detail)
+            predicted_department = Department.get_by_name(predicted_name)
             return predicted_department.id if predicted_department else None
-        except Exception as e:
+        except Exception:
             return None
 
     @staticmethod
@@ -68,32 +137,36 @@ class ClaimService:
         Returns:
             tuple[int | None, str | None]: (department_id, error_message)
         """
+        from modules.department import Department
+
         # Si se especificó departamento manualmente, validarlo
         if department_id is not None:
-            department = DepartmentService.get_department_by_id(department_id)
+            department = Department.get_by_id(department_id)
             if not department:
                 return None, "Departamento no válido"
             return department_id, None
 
         # Intentar clasificación automática
-        classified_id = ClaimService._classify_claim_department(detail)
+        classified_id = Claim._classify_department(detail)
         if classified_id is not None:
             return classified_id, None
 
         # Fallback a Secretaría Técnica
-        technical_id = ClaimService._get_technical_secretariat_id()
+        technical_id = Claim._get_technical_secretariat_id()
         if technical_id is None:
             return None, "No se encontró la Secretaría Técnica"
 
         return technical_id, None
 
+    # ── Métodos estáticos de creación / actualización ────────────────
+
     @staticmethod
-    def create_claim(
+    def create(
         user_id: int,
         detail: str,
         department_id: int | None = None,
         image_path: str | None = None,
-    ) -> tuple[Claim | None, str | None]:
+    ) -> tuple["Claim | None", str | None]:
         """
         Crea un nuevo reclamo.
 
@@ -110,7 +183,7 @@ class ClaimService:
             return None, "El detalle del reclamo no puede estar vacío"
 
         # Resolver departamento (manual, clasificado, o fallback)
-        resolved_department_id, error = ClaimService._resolve_department_id(
+        resolved_department_id, error = Claim._resolve_department_id(
             detail, department_id
         )
         if error or not resolved_department_id:
@@ -129,7 +202,73 @@ class ClaimService:
         return claim, None
 
     @staticmethod
-    def get_claim_by_id(claim_id: int) -> Claim | None:
+    def update_status(
+        claim_id: int, new_status: ClaimStatus, admin_user_id: int
+    ) -> tuple[bool, str | None]:
+        """
+        Actualiza el estado de un reclamo y crea un registro en el historial.
+        Esto genera notificaciones individuales para el creador y cada adherente.
+
+        Args:
+            claim_id: ID del reclamo
+            new_status: Nuevo estado del reclamo
+            admin_user_id: ID del usuario administrador que realiza el cambio
+
+        Returns:
+            tuple[bool, str | None]: (success, error_message)
+        """
+        from modules.claim_status_history import ClaimStatusHistory
+        from modules.claim_supporter import ClaimSupporter
+        from modules.user_notification import UserNotification
+
+        claim = db.session.get(Claim, claim_id)
+
+        if not claim:
+            return False, "Reclamo no encontrado"
+
+        old_status = claim.status
+
+        # No crear historial si el estado no cambió
+        if old_status == new_status:
+            return False, "El estado no ha cambiado"
+
+        # Actualizar el estado del reclamo
+        claim.status = new_status
+
+        # Crear entrada en el historial
+        history_entry = ClaimStatusHistory(
+            claim_id=claim_id,
+            old_status=old_status,
+            new_status=new_status,
+            changed_by_id=admin_user_id,
+        )
+
+        db.session.add(history_entry)
+        db.session.flush()  # Para obtener el ID de history_entry
+
+        # Crear notificaciones individuales para cada usuario afectado
+        # 1. Notificación para el creador del reclamo
+        creator_notification = UserNotification(
+            user_id=claim.creator_id, claim_status_history_id=history_entry.id
+        )
+        db.session.add(creator_notification)
+
+        # 2. Notificaciones para cada adherente
+        supporters = db.session.query(ClaimSupporter).filter_by(claim_id=claim_id).all()
+        for supporter in supporters:
+            supporter_notification = UserNotification(
+                user_id=supporter.user_id, claim_status_history_id=history_entry.id
+            )
+            db.session.add(supporter_notification)
+
+        db.session.commit()
+
+        return True, None
+
+    # ── Queries estáticas ────────────────────────────────────────────
+
+    @staticmethod
+    def get_by_id(claim_id: int) -> "Claim | None":
         """
         Obtiene un reclamo por su ID.
 
@@ -142,7 +281,7 @@ class ClaimService:
         return db.session.get(Claim, claim_id)
 
     @staticmethod
-    def get_pending_claims(department_id_filter: int | None = None) -> list[Claim]:
+    def get_pending(department_id_filter: int | None = None) -> list["Claim"]:
         """
         Obtiene todos los reclamos pendientes.
 
@@ -160,9 +299,9 @@ class ClaimService:
         return query.order_by(Claim.created_at.desc()).all()
 
     @staticmethod
-    def get_all_claims(
+    def get_all_with_filters(
         department_filter: int | None = None, status_filter: ClaimStatus | None = None
-    ) -> list[Claim]:
+    ) -> list["Claim"]:
         """
         Obtiene todos los reclamos con filtros opcionales.
 
@@ -234,7 +373,7 @@ class ClaimService:
                 "invalid_claims": 0,
             }
 
-        status_counts = ClaimService.get_status_counts(department_ids=department_ids)
+        status_counts = Claim.get_status_counts(department_ids=department_ids)
 
         total_query = db.session.query(Claim)
         if department_ids is not None:
@@ -299,6 +438,8 @@ class ClaimService:
 
         return per_dept
 
+    # ── Supporters ───────────────────────────────────────────────────
+
     @staticmethod
     def add_supporter(claim_id: int, user_id: int) -> tuple[bool, str | None]:
         """
@@ -311,8 +452,10 @@ class ClaimService:
         Returns:
             tuple[bool, str | None]: (True, None) si exitoso, (False, error_message) si falla
         """
+        from modules.claim_supporter import ClaimSupporter
+
         # Verificar que el reclamo existe
-        claim = ClaimService.get_claim_by_id(claim_id)
+        claim = Claim.get_by_id(claim_id)
         if not claim:
             return False, "Reclamo no encontrado"
 
@@ -321,7 +464,7 @@ class ClaimService:
             return False, "No puedes adherirte a tu propio reclamo"
 
         # Verificar si ya está adherido
-        if ClaimService.is_user_supporter(claim_id, user_id):
+        if Claim.is_user_supporter(claim_id, user_id):
             return False, "Ya estás adherido a este reclamo"
 
         # Crear el adherente
@@ -347,6 +490,8 @@ class ClaimService:
         Returns:
             tuple[bool, str | None]: (True, None) si exitoso, (False, error_message) si falla
         """
+        from modules.claim_supporter import ClaimSupporter
+
         # Buscar el adherente
         supporter = (
             db.session.query(ClaimSupporter)
@@ -373,6 +518,8 @@ class ClaimService:
         Returns:
             bool: True si está adherido, False en caso contrario
         """
+        from modules.claim_supporter import ClaimSupporter
+
         supporter = (
             db.session.query(ClaimSupporter)
             .filter_by(claim_id=claim_id, user_id=user_id)
@@ -381,7 +528,7 @@ class ClaimService:
         return supporter is not None
 
     @staticmethod
-    def get_user_claims(user_id: int) -> list[Claim]:
+    def get_by_user(user_id: int) -> list["Claim"]:
         """
         Obtiene todos los reclamos creados por un usuario.
 
@@ -400,7 +547,7 @@ class ClaimService:
         return claims
 
     @staticmethod
-    def get_user_supported_claims(user_id: int) -> list[Claim]:
+    def get_supported_by_user(user_id: int) -> list["Claim"]:
         """
         Obtiene todos los reclamos a los que un usuario está adherido.
 
@@ -410,6 +557,8 @@ class ClaimService:
         Returns:
             Lista de reclamos ordenados por fecha de adhesión (más recientes primero)
         """
+        from modules.claim_supporter import ClaimSupporter
+
         claims = (
             db.session.query(Claim)
             .join(ClaimSupporter, Claim.id == ClaimSupporter.claim_id)
@@ -420,7 +569,7 @@ class ClaimService:
         return claims
 
     @staticmethod
-    def get_claims_by_department_ids(department_ids: list[int]) -> list[Claim]:
+    def get_by_departments(department_ids: list[int]) -> list["Claim"]:
         """
         Obtiene reclamos filtrados por lista de departamentos.
 
@@ -440,61 +589,22 @@ class ClaimService:
         )
 
     @staticmethod
-    def update_claim_status(
-        claim_id: int, new_status: ClaimStatus, admin_user_id: int
-    ) -> tuple[bool, str | None]:
+    def get_supporter_ids(claim_id: int) -> list[int]:
         """
-        Actualiza el estado de un reclamo y crea un registro en el historial.
-        Esto genera notificaciones individuales para el creador y cada adherente.
+        Obtiene IDs de adherentes de un reclamo.
 
         Args:
             claim_id: ID del reclamo
-            new_status: Nuevo estado del reclamo
-            admin_user_id: ID del usuario administrador que realiza el cambio
 
         Returns:
-            tuple[bool, str | None]: (success, error_message)
+            Lista de IDs de usuarios adherentes
         """
-        claim = db.session.get(Claim, claim_id)
+        from modules.claim_supporter import ClaimSupporter
 
-        if not claim:
-            return False, "Reclamo no encontrado"
-
-        old_status = claim.status
-
-        # No crear historial si el estado no cambió
-        if old_status == new_status:
-            return False, "El estado no ha cambiado"
-
-        # Actualizar el estado del reclamo
-        claim.status = new_status
-
-        # Crear entrada en el historial
-        history_entry = ClaimStatusHistory(
-            claim_id=claim_id,
-            old_status=old_status,
-            new_status=new_status,
-            changed_by_id=admin_user_id,
+        rows = (
+            db.session.query(ClaimSupporter.user_id)
+            .filter_by(claim_id=claim_id)
+            .order_by(ClaimSupporter.created_at.asc())
+            .all()
         )
-
-        db.session.add(history_entry)
-        db.session.flush()  # Para obtener el ID de history_entry
-
-        # Crear notificaciones individuales para cada usuario afectado
-        # 1. Notificación para el creador del reclamo
-        creator_notification = UserNotification(
-            user_id=claim.creator_id, claim_status_history_id=history_entry.id
-        )
-        db.session.add(creator_notification)
-
-        # 2. Notificaciones para cada adherente
-        supporters = db.session.query(ClaimSupporter).filter_by(claim_id=claim_id).all()
-        for supporter in supporters:
-            supporter_notification = UserNotification(
-                user_id=supporter.user_id, claim_status_history_id=history_entry.id
-            )
-            db.session.add(supporter_notification)
-
-        db.session.commit()
-
-        return True, None
+        return [int(user_id) for (user_id,) in rows]

@@ -4,8 +4,8 @@ Ejecutar: python train_classifier.py
 """
 
 from modules.config import create_app, db
-from modules.services.classifier_service import classifier_service
-from modules.models import Department
+from modules.classifier import classifier
+from modules.department import Department
 
 
 # Dataset de entrenamiento inicial
@@ -140,7 +140,7 @@ def train_model():
 
         # Entrenar modelo
         print(f"\nEntrenando con {len(texts)} ejemplos...")
-        classifier_service.train(list(texts), list(labels))
+        classifier.train(list(texts), list(labels))
 
         print("\n✅ Modelo entrenado exitosamente")
         print(f"   Archivos guardados en: models/")
@@ -156,8 +156,8 @@ def train_model():
         ]
 
         for test_text in test_cases:
-            predicted = classifier_service.classify(test_text)
-            confidence = classifier_service.get_confidence(test_text)
+            predicted = classifier.classify(test_text)
+            confidence = classifier.get_confidence(test_text)
             print(f"Texto: '{test_text}'")
             print(f"Predicción: {predicted} (confianza: {confidence:.2%})")
             print()

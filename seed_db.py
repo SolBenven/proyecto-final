@@ -4,45 +4,39 @@ Ejecutar después de init_db.py para crear departamentos y usuarios admin.
 """
 
 from modules.config import create_app, db
-from modules.models import (
-    Department,
-    AdminUser,
-    AdminRole,
-    EndUser,
-    Cloister,
-    Claim,
-    ClaimStatus,
-)
-from modules.services.claim_service import ClaimService
+from modules.admin_user import AdminRole, AdminUser
+from modules.claim import Claim, ClaimStatus
+from modules.department import Department
+from modules.end_user import Cloister, EndUser
 
 
 def clear_database():
     """Limpia todas las tablas de la base de datos para empezar de cero"""
     print("  Limpiando base de datos...")
-    
+
     # Eliminar en orden inverso de dependencias para evitar problemas de FK
-    from modules.models.user_notification import UserNotification
-    from modules.models.claim_status_history import ClaimStatusHistory
-    from modules.models.claim_supporter import ClaimSupporter
-    from modules.models.claim_transfer import ClaimTransfer
-    
+    from modules.user_notification import UserNotification
+    from modules.claim_status_history import ClaimStatusHistory
+    from modules.claim_supporter import ClaimSupporter
+    from modules.claim_transfer import ClaimTransfer
+
     try:
         # Primero las tablas dependientes
         UserNotification.query.delete()
         ClaimStatusHistory.query.delete()
         ClaimSupporter.query.delete()
         ClaimTransfer.query.delete()
-        
+
         # Luego los reclamos
         Claim.query.delete()
-        
+
         # Usuarios (EndUser y AdminUser)
         EndUser.query.delete()
         AdminUser.query.delete()
-        
+
         # Finalmente departamentos
         Department.query.delete()
-        
+
         db.session.commit()
         print("  ✓ Base de datos limpiada exitosamente")
     except Exception as e:
@@ -371,7 +365,7 @@ def create_sample_claims():
 
             detail = f"{base_text}"
 
-            claim, error = ClaimService.create_claim(
+            claim, error = Claim.create(
                 user_id=user.id,
                 detail=detail,
                 department_id=department_id,
@@ -398,7 +392,7 @@ def create_sample_claims():
 
         idx = 0
         for _ in range(min(invalid_n, len(claim_ids) - idx)):
-            ClaimService.update_claim_status(
+            Claim.update_status(
                 claim_id=claim_ids[idx],
                 new_status=ClaimStatus.INVALID,
                 admin_user_id=admin_user_id,
@@ -406,7 +400,7 @@ def create_sample_claims():
             idx += 1
 
         for _ in range(min(resolved_n, len(claim_ids) - idx)):
-            ClaimService.update_claim_status(
+            Claim.update_status(
                 claim_id=claim_ids[idx],
                 new_status=ClaimStatus.RESOLVED,
                 admin_user_id=admin_user_id,
@@ -414,7 +408,7 @@ def create_sample_claims():
             idx += 1
 
         for _ in range(min(in_progress_n, len(claim_ids) - idx)):
-            ClaimService.update_claim_status(
+            Claim.update_status(
                 claim_id=claim_ids[idx],
                 new_status=ClaimStatus.IN_PROGRESS,
                 admin_user_id=admin_user_id,
@@ -458,7 +452,7 @@ def main():
 
     with app.app_context():
         print("\n=== Inicializando datos de prueba ===\n")
-        
+
         print("0. Limpiando base de datos existente...")
         clear_database()
         print()

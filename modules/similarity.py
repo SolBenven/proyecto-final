@@ -1,25 +1,23 @@
 """
-Servicio para detectar reclamos similares usando TF-IDF y similitud coseno.
+Detector de reclamos similares usando TF-IDF y similitud coseno.
 """
 
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from modules.models.claim import Claim
-from modules.services.claim_service import ClaimService
 from modules.utils.constants import SPANISH_STOPWORDS
 from modules.utils.text import normalize_text
 
 if TYPE_CHECKING:
-    pass
+    from modules.claim import Claim
 
 
-class SimilarityService:
-    """Servicio para encontrar reclamos similares"""
+class SimilarityFinder:
+    """Buscador de reclamos similares"""
 
     def __init__(self):
-        """Inicializa el servicio con vectorizador TF-IDF"""
+        """Inicializa el buscador con vectorizador TF-IDF"""
         self.vectorizer = TfidfVectorizer(
             stop_words=SPANISH_STOPWORDS,
             min_df=1,
@@ -35,7 +33,7 @@ class SimilarityService:
         threshold: float = 0.25,
         limit: int = 5,
         exclude_claim_id: int | None = None,
-    ) -> list[tuple[Claim, float]]:
+    ) -> list[tuple["Claim", float]]:
         """
         Busca reclamos similares. Si no se proporciona department_id, busca en todos los departamentos.
 
@@ -52,7 +50,9 @@ class SimilarityService:
         if not text or not text.strip():
             return []
 
-        claims = ClaimService.get_pending_claims(department_id_filter=department_id)
+        from modules.claim import Claim
+
+        claims = Claim.get_pending(department_id_filter=department_id)
 
         # Excluir reclamo específico si se proporciona
         if exclude_claim_id is not None:
@@ -86,5 +86,5 @@ class SimilarityService:
         return similar[:limit]
 
 
-# Instancia global del servicio
-similarity_service = SimilarityService()
+# Instancia global del buscador de similitud
+similarity_finder = SimilarityFinder()

@@ -5,12 +5,12 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from modules.config import db
-from modules.models.claim import ClaimStatus
+from modules.claim import ClaimStatus
 
 if TYPE_CHECKING:
-    from modules.models.claim import Claim
-    from modules.models.user.admin_user import AdminUser
-    from modules.models.user_notification import UserNotification
+    from modules.claim import Claim
+    from modules.admin_user import AdminUser
+    from modules.user_notification import UserNotification
 
 
 class ClaimStatusHistory(db.Model):

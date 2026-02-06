@@ -76,7 +76,7 @@ class BaseTestCase(unittest.TestCase):
     def _create_sample_departments(self):
         """Crea departamentos de prueba y guarda sus IDs"""
         from modules.config import db
-        from modules.models.department import Department
+        from modules.department import Department
 
         # Crear Secretaría Técnica
         st = Department(

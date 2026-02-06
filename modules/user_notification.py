@@ -1,17 +1,60 @@
-"""Servicio para gestionar notificaciones de cambios de estado en reclamos"""
+from datetime import datetime as Datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy.orm import joinedload
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship, joinedload
 
 from modules.config import db
-from modules.models.claim_status_history import ClaimStatusHistory
-from modules.models.user_notification import UserNotification
+
+if TYPE_CHECKING:
+    from modules.claim_status_history import ClaimStatusHistory
+    from modules.user import User
 
 
-class NotificationService:
-    """Gestión de notificaciones basadas en cambios de estado"""
+class UserNotification(db.Model):
+    """
+    Notificación individual por usuario.
+    Cada cambio de estado de un reclamo genera una entrada por cada usuario afectado.
+    """
+
+    __tablename__ = "user_notification"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    read_at: Mapped[Datetime | None] = mapped_column(nullable=True, default=None)
+    created_at: Mapped[Datetime] = mapped_column(default=Datetime.now)
+
+    # Foreign Keys
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
+    claim_status_history_id: Mapped[int] = mapped_column(
+        ForeignKey("claim_status_history.id"), nullable=False
+    )
+
+    # Relaciones
+    user: Mapped["User"] = relationship("User")
+    claim_status_history: Mapped["ClaimStatusHistory"] = relationship(
+        "ClaimStatusHistory", back_populates="user_notifications"
+    )
+
+    def __init__(self, user_id: int, claim_status_history_id: int):
+        self.user_id = user_id
+        self.claim_status_history_id = claim_status_history_id
+
+    @property
+    def is_read(self) -> bool:
+        """Indica si la notificación fue leída"""
+        return self.read_at is not None
+
+    def mark_as_read(self) -> None:
+        """Marca la notificación como leída"""
+        if self.read_at is None:
+            self.read_at = Datetime.now()
+
+    def __repr__(self):
+        status = "leída" if self.is_read else "Pendiente"
+        return f"<UserNotification user_id={self.user_id} {status}>"
 
     @staticmethod
-    def get_pending_notifications(user_id: int) -> list[UserNotification]:
+    def get_pending_for_user(user_id: int) -> list["UserNotification"]:
         """
         Obtiene notificaciones pendientes (no leídas) para un usuario.
 
@@ -21,6 +64,8 @@ class NotificationService:
         Returns:
             Lista de UserNotification no leídas, ordenadas por más recientes
         """
+        from modules.claim_status_history import ClaimStatusHistory
+
         notifications = (
             db.session.query(UserNotification)
             .filter_by(user_id=user_id, read_at=None)
@@ -88,7 +133,7 @@ class NotificationService:
         return True, None
 
     @staticmethod
-    def mark_all_as_read(user_id: int) -> int:
+    def mark_all_as_read_for_user(user_id: int) -> int:
         """
         Marca todas las notificaciones de un usuario como leídas.
 
@@ -99,7 +144,7 @@ class NotificationService:
             Cantidad de notificaciones marcadas
         """
         # Obtener las notificaciones pendientes
-        notifications = NotificationService.get_pending_notifications(user_id)
+        notifications = UserNotification.get_pending_for_user(user_id)
 
         # Marcar cada una como leída
         count = 0
