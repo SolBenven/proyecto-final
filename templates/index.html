@@ -11,7 +11,9 @@
                 Hola, <span class="font-semibold">{{ user.first_name }} {{ user.last_name }}</span> 
                 (<span class="text-primary">{{ user.username }}</span>)
             </p>
+            {% if user.cloister is defined and user.cloister %}
             <div class="badge badge-lg badge-primary">{{ user.cloister.value }}</div>
+            {% endif %}
             
             <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
                 <a href="{{ url_for('claims.list') }}" class="btn btn-primary">
