@@ -1,12 +1,12 @@
 from enum import Enum
 from typing import TYPE_CHECKING
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from modules.models.user.base import User
+from modules.user import User
 from modules.config import db
 
 if TYPE_CHECKING:
-    from modules.models.claim import Claim
-    from modules.models.claim_supporter import ClaimSupporter
+    from modules.claim import Claim
+    from modules.claim_supporter import ClaimSupporter
 
 
 class Cloister(Enum):

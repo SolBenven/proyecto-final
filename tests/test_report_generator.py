@@ -6,9 +6,9 @@ import unittest
 from tests.conftest import BaseTestCase
 
 from modules.config import db
-from modules.models.claim import Claim, ClaimStatus
-from modules.models.department import Department
-from modules.models.user.end_user import Cloister, EndUser
+from modules.claim import Claim, ClaimStatus
+from modules.department import Department
+from modules.end_user import Cloister, EndUser
 from modules.analytics_generator import AnalyticsGenerator
 
 

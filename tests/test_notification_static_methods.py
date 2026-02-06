@@ -6,12 +6,12 @@ Verifica las funcionalidades del sistema de notificaciones
 import unittest
 
 from modules.config import db
-from modules.models.claim import Claim, ClaimStatus
-from modules.models.claim_status_history import ClaimStatusHistory
-from modules.models.department import Department
-from modules.models.user.admin_user import AdminRole, AdminUser
-from modules.models.user.end_user import Cloister, EndUser
-from modules.models.user_notification import UserNotification
+from modules.claim import Claim, ClaimStatus
+from modules.claim_status_history import ClaimStatusHistory
+from modules.department import Department
+from modules.admin_user import AdminRole, AdminUser
+from modules.end_user import Cloister, EndUser
+from modules.user_notification import UserNotification
 from tests.conftest import BaseTestCase
 
 

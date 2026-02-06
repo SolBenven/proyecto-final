@@ -13,7 +13,7 @@ matplotlib.use("Agg")  # Backend sin GUI - DEBE estar antes de importar pyplot
 import matplotlib.pyplot as plt
 
 from modules.config import db
-from modules.models.claim import Claim, ClaimStatus
+from modules.claim import Claim, ClaimStatus
 from modules.utils.constants import SPANISH_STOPWORDS_SET
 from modules.utils.text import normalize_text
 

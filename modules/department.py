@@ -7,8 +7,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from modules.config import db
 
 if TYPE_CHECKING:
-    from modules.models.claim import Claim
-    from modules.models.user.admin_user import AdminUser
+    from modules.claim import Claim
+    from modules.admin_user import AdminUser
 
 
 class Department(db.Model):

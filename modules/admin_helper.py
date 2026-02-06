@@ -5,10 +5,10 @@ from __future__ import annotations
 from sqlalchemy.orm import joinedload, selectinload
 
 from modules.config import db
-from modules.models.claim import Claim, ClaimStatus
-from modules.models.claim_supporter import ClaimSupporter
-from modules.models.department import Department
-from modules.models.user.admin_user import AdminUser
+from modules.claim import Claim, ClaimStatus
+from modules.claim_supporter import ClaimSupporter
+from modules.department import Department
+from modules.admin_user import AdminUser
 
 
 class AdminHelper:

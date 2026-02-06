@@ -11,11 +11,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from modules.config import db
 
 if TYPE_CHECKING:
-    from modules.models.claim_status_history import ClaimStatusHistory
-    from modules.models.claim_supporter import ClaimSupporter
-    from modules.models.claim_transfer import ClaimTransfer
-    from modules.models.department import Department
-    from modules.models.user.end_user import EndUser
+    from modules.claim_status_history import ClaimStatusHistory
+    from modules.claim_supporter import ClaimSupporter
+    from modules.claim_transfer import ClaimTransfer
+    from modules.department import Department
+    from modules.end_user import EndUser
 
 
 class ClaimStatus(Enum):
@@ -94,7 +94,7 @@ class Claim(db.Model):
         Returns:
             ID de la Secretaría Técnica o None si no existe
         """
-        from modules.models.department import Department
+        from modules.department import Department
 
         technical_secretariat = Department.get_technical_secretariat()
         return technical_secretariat.id if technical_secretariat else None
@@ -111,7 +111,7 @@ class Claim(db.Model):
             ID del departamento predicho o None si falla la clasificación
         """
         from modules.classifier import classifier
-        from modules.models.department import Department
+        from modules.department import Department
 
         if not classifier.is_model_available():
             return None
@@ -137,7 +137,7 @@ class Claim(db.Model):
         Returns:
             tuple[int | None, str | None]: (department_id, error_message)
         """
-        from modules.models.department import Department
+        from modules.department import Department
 
         # Si se especificó departamento manualmente, validarlo
         if department_id is not None:
@@ -217,9 +217,9 @@ class Claim(db.Model):
         Returns:
             tuple[bool, str | None]: (success, error_message)
         """
-        from modules.models.claim_status_history import ClaimStatusHistory
-        from modules.models.claim_supporter import ClaimSupporter
-        from modules.models.user_notification import UserNotification
+        from modules.claim_status_history import ClaimStatusHistory
+        from modules.claim_supporter import ClaimSupporter
+        from modules.user_notification import UserNotification
 
         claim = db.session.get(Claim, claim_id)
 
@@ -452,7 +452,7 @@ class Claim(db.Model):
         Returns:
             tuple[bool, str | None]: (True, None) si exitoso, (False, error_message) si falla
         """
-        from modules.models.claim_supporter import ClaimSupporter
+        from modules.claim_supporter import ClaimSupporter
 
         # Verificar que el reclamo existe
         claim = Claim.get_by_id(claim_id)
@@ -490,7 +490,7 @@ class Claim(db.Model):
         Returns:
             tuple[bool, str | None]: (True, None) si exitoso, (False, error_message) si falla
         """
-        from modules.models.claim_supporter import ClaimSupporter
+        from modules.claim_supporter import ClaimSupporter
 
         # Buscar el adherente
         supporter = (
@@ -518,7 +518,7 @@ class Claim(db.Model):
         Returns:
             bool: True si está adherido, False en caso contrario
         """
-        from modules.models.claim_supporter import ClaimSupporter
+        from modules.claim_supporter import ClaimSupporter
 
         supporter = (
             db.session.query(ClaimSupporter)
@@ -557,7 +557,7 @@ class Claim(db.Model):
         Returns:
             Lista de reclamos ordenados por fecha de adhesión (más recientes primero)
         """
-        from modules.models.claim_supporter import ClaimSupporter
+        from modules.claim_supporter import ClaimSupporter
 
         claims = (
             db.session.query(Claim)
@@ -599,7 +599,7 @@ class Claim(db.Model):
         Returns:
             Lista de IDs de usuarios adherentes
         """
-        from modules.models.claim_supporter import ClaimSupporter
+        from modules.claim_supporter import ClaimSupporter
 
         rows = (
             db.session.query(ClaimSupporter.user_id)

@@ -13,9 +13,10 @@ from tests.conftest import BaseTestCase
 
 from flask import Blueprint
 from modules.config import db
-from modules.models.user import EndUser, AdminUser, Cloister, AdminRole
-from modules.models.department import Department
-from modules.models.claim import Claim, ClaimStatus
+from modules.admin_user import AdminRole, AdminUser
+from modules.claim import Claim, ClaimStatus
+from modules.department import Department
+from modules.end_user import Cloister, EndUser
 from modules.utils.decorators import (
     admin_required,
     admin_role_required,
@@ -103,7 +104,11 @@ class TestCanManageClaim(BaseTestCase):
         self.department_id = dept.id
 
         # Usar secretaría técnica existente (ya creada por BaseTestCase)
-        tech_dept = db.session.query(Department).filter_by(is_technical_secretariat=True).first()
+        tech_dept = (
+            db.session.query(Department)
+            .filter_by(is_technical_secretariat=True)
+            .first()
+        )
         self.tech_department_id = tech_dept.id
 
     def test_technical_secretary_properties(self):
@@ -153,7 +158,11 @@ class TestRoleProperties(BaseTestCase):
         self.department_id = dept.id
 
         # Usar secretaría técnica existente (ya creada por BaseTestCase)
-        tech_dept = db.session.query(Department).filter_by(is_technical_secretariat=True).first()
+        tech_dept = (
+            db.session.query(Department)
+            .filter_by(is_technical_secretariat=True)
+            .first()
+        )
         self.tech_department_id = tech_dept.id
 
     def test_is_department_head_property(self):
@@ -200,5 +209,5 @@ class TestIntegration(BaseTestCase):
     pass  # Los tests de integración requieren configuración completa de Flask-Login
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -10,11 +10,11 @@ from werkzeug.datastructures import FileStorage
 from tests.conftest import BaseTestCase
 
 from modules.config import db
-from modules.models.claim import Claim
-from modules.models.department import Department
-from modules.models.user.admin_user import AdminRole, AdminUser
-from modules.models.user.end_user import Cloister, EndUser
-from modules.models.claim import Claim
+from modules.claim import Claim
+from modules.department import Department
+from modules.admin_user import AdminRole, AdminUser
+from modules.end_user import Cloister, EndUser
+from modules.claim import Claim
 from modules.image_handler import ImageHandler
 
 

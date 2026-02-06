@@ -7,8 +7,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, joinedload
 from modules.config import db
 
 if TYPE_CHECKING:
-    from modules.models.claim_status_history import ClaimStatusHistory
-    from modules.models.user.base import User
+    from modules.claim_status_history import ClaimStatusHistory
+    from modules.user import User
 
 
 class UserNotification(db.Model):
@@ -64,7 +64,7 @@ class UserNotification(db.Model):
         Returns:
             Lista de UserNotification no leídas, ordenadas por más recientes
         """
-        from modules.models.claim_status_history import ClaimStatusHistory
+        from modules.claim_status_history import ClaimStatusHistory
 
         notifications = (
             db.session.query(UserNotification)

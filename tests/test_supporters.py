@@ -6,9 +6,9 @@ Verifica las funcionalidades de adhesión a reclamos
 import unittest
 from tests.conftest import BaseTestCase
 
-from modules.models.claim import Claim
+from modules.claim import Claim
 from modules.config import db
-from modules.models.user.end_user import Cloister, EndUser
+from modules.end_user import Cloister, EndUser
 
 
 class TestSupporters(BaseTestCase):

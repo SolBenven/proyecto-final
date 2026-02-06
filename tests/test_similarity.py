@@ -6,7 +6,9 @@ import unittest
 from tests.conftest import BaseTestCase
 
 from modules.config import db
-from modules.models import Department, EndUser, Claim, Cloister, ClaimStatus
+from modules.claim import Claim, ClaimStatus
+from modules.department import Department
+from modules.end_user import Cloister, EndUser
 from modules.similarity import similarity_finder
 
 

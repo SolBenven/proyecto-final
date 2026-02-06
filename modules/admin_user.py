@@ -1,12 +1,12 @@
 from enum import Enum
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from modules.models.user.base import User
+from modules.user import User
 from modules.config import db
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from modules.models.department import Department
+    from modules.department import Department
 
 
 class AdminRole(Enum):

@@ -3,7 +3,8 @@
 from functools import wraps
 from flask import abort, flash, redirect, url_for
 from flask_login import current_user
-from modules.models.user import AdminUser, EndUser, AdminRole
+from modules.admin_user import AdminRole, AdminUser
+from modules.end_user import EndUser
 
 
 def end_user_required(f):

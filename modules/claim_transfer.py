@@ -9,9 +9,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from modules.config import db
 
 if TYPE_CHECKING:
-    from modules.models.claim import Claim
-    from modules.models.department import Department
-    from modules.models.user.admin_user import AdminUser
+    from modules.claim import Claim
+    from modules.department import Department
+    from modules.admin_user import AdminUser
 
 
 class ClaimTransfer(db.Model):
@@ -84,8 +84,8 @@ class ClaimTransfer(db.Model):
             tuple[ClaimTransfer | None, str | None]: (transfer, None) si exitoso,
                 (None, error_message) si falla
         """
-        from modules.models.claim import Claim
-        from modules.models.department import Department
+        from modules.claim import Claim
+        from modules.department import Department
 
         # Obtener el reclamo
         claim = db.session.get(Claim, claim_id)
@@ -153,7 +153,7 @@ class ClaimTransfer(db.Model):
         Returns:
             Lista de departamentos (excluyendo el actual)
         """
-        from modules.models.department import Department
+        from modules.department import Department
 
         all_departments = Department.get_all()
         return [d for d in all_departments if d.id != current_department_id]

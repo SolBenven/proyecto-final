@@ -7,8 +7,8 @@ import unittest
 from tests.conftest import BaseTestCase
 
 from modules.config import db
-from modules.models.department import Department
-from modules.models.user.admin_user import AdminRole, AdminUser
+from modules.department import Department
+from modules.admin_user import AdminRole, AdminUser
 
 
 class TestDepartmentStaticMethods(BaseTestCase):

@@ -4,15 +4,10 @@ Ejecutar después de init_db.py para crear departamentos y usuarios admin.
 """
 
 from modules.config import create_app, db
-from modules.models import (
-    Department,
-    AdminUser,
-    AdminRole,
-    EndUser,
-    Cloister,
-    Claim,
-    ClaimStatus,
-)
+from modules.admin_user import AdminRole, AdminUser
+from modules.claim import Claim, ClaimStatus
+from modules.department import Department
+from modules.end_user import Cloister, EndUser
 
 
 def clear_database():
@@ -20,10 +15,10 @@ def clear_database():
     print("  Limpiando base de datos...")
 
     # Eliminar en orden inverso de dependencias para evitar problemas de FK
-    from modules.models.user_notification import UserNotification
-    from modules.models.claim_status_history import ClaimStatusHistory
-    from modules.models.claim_supporter import ClaimSupporter
-    from modules.models.claim_transfer import ClaimTransfer
+    from modules.user_notification import UserNotification
+    from modules.claim_status_history import ClaimStatusHistory
+    from modules.claim_supporter import ClaimSupporter
+    from modules.claim_transfer import ClaimTransfer
 
     try:
         # Primero las tablas dependientes

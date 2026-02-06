@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 
 from flask import render_template
 
-from modules.models.claim import Claim
-from modules.models.department import Department
+from modules.claim import Claim
+from modules.department import Department
 from modules.analytics_generator import AnalyticsGenerator
 from modules.utils.constants import PDF_CSS
 

@@ -7,8 +7,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from modules.config import db
 
 if TYPE_CHECKING:
-    from modules.models.claim import Claim
-    from modules.models.user.end_user import EndUser
+    from modules.claim import Claim
+    from modules.end_user import EndUser
 
 
 class ClaimSupporter(db.Model):

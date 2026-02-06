@@ -6,9 +6,9 @@ Verifica las funcionalidades de creación y consulta de reclamos
 import unittest
 
 from modules.config import db
-from modules.models.claim import Claim, ClaimStatus
-from modules.models.department import Department
-from modules.models.user.end_user import Cloister, EndUser
+from modules.claim import Claim, ClaimStatus
+from modules.department import Department
+from modules.end_user import Cloister, EndUser
 from tests.conftest import BaseTestCase
 
 

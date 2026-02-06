@@ -5,7 +5,7 @@ Ejecutar: python train_classifier.py
 
 from modules.config import create_app, db
 from modules.classifier import classifier
-from modules.models import Department
+from modules.department import Department
 
 
 # Dataset de entrenamiento inicial

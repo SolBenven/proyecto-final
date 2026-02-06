@@ -10,7 +10,7 @@ from modules.utils.constants import SPANISH_STOPWORDS
 from modules.utils.text import normalize_text
 
 if TYPE_CHECKING:
-    from modules.models.claim import Claim
+    from modules.claim import Claim
 
 
 class SimilarityFinder:
@@ -50,7 +50,7 @@ class SimilarityFinder:
         if not text or not text.strip():
             return []
 
-        from modules.models.claim import Claim
+        from modules.claim import Claim
 
         claims = Claim.get_pending(department_id_filter=department_id)
 

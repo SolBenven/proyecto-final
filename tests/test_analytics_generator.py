@@ -5,8 +5,8 @@ Tests para AnalyticsGenerator - Fase 11
 import unittest
 
 from modules.config import db
-from modules.models.claim import Claim, ClaimStatus
-from modules.models.user.end_user import Cloister, EndUser
+from modules.claim import Claim, ClaimStatus
+from modules.end_user import Cloister, EndUser
 from modules.analytics_generator import AnalyticsGenerator
 from tests.conftest import BaseTestCase
 

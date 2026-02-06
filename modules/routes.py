@@ -18,12 +18,13 @@ from flask import (
 from flask_login import current_user, login_required, login_user, logout_user
 
 from modules.config import app, db, login_manager
-from modules.models.claim import Claim, ClaimStatus
-from modules.models.claim_transfer import ClaimTransfer
-from modules.models.department import Department
-from modules.models.user import AdminUser, Cloister, EndUser, User
-from modules.models.user.admin_user import AdminRole
-from modules.models.user_notification import UserNotification
+from modules.admin_user import AdminRole, AdminUser
+from modules.claim import Claim, ClaimStatus
+from modules.claim_transfer import ClaimTransfer
+from modules.department import Department
+from modules.end_user import Cloister, EndUser
+from modules.user import User
+from modules.user_notification import UserNotification
 from modules.admin_helper import AdminHelper
 from modules.analytics_generator import AnalyticsGenerator
 from modules.image_handler import ImageHandler
